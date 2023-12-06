@@ -55,6 +55,7 @@ bool safe_strtoull(const char *str, uint64_t *out) {
             if (memchr(str, '-', endptr - str) != NULL) {
             //so youre checking if the char '-' (the minus sign) turns up between the start of (the adresse of) the string and the endptr (adresse)
             //(if it does you return the adresse of where that - was found?)
+            //understand the difference between the string being something like "-531" and one of the individual char characters being '-56'
                 return false;
             //so point is, this is a safety check, as memchr(str, '-', endptr - str) should be NULL as '-' should not occur between the str and endptr adresses
             
@@ -158,7 +159,7 @@ int main(){
 	char str[sizeStr];
 
     uint64_t strVal = __VERIFIER_nondet_ulonglong();
-
+    if(strVal >= 50 || strVal <= 3) {abort();}
 
 
 //Main Verification Harness:
@@ -167,7 +168,7 @@ int main(){
 		str[i] = __VERIFIER_nondet_char(); 
 		//src[i] = ' '; 
 	}
-	str[sizeStr-1] = '\0'
+	str[sizeStr-1] = '\0';
 
     bool safe = safe_strtoull(str,&strVal);
     //safe_strtoull(const char *str, uint64_t *out)
@@ -280,3 +281,46 @@ static enum test_return test_safe_strtoull(void) {
 //and rq stems from luaL_checkudata() which is a method from an outside library?
 
 //delta, initial and req_cas_id can all be taken from the proxy_internal.c/_meta_flags object instance (but arent always, watch out)
+
+//ESBMC doesnt understand errno or strtoull?
+//WARNING: no body for function __errno_location
+//WARNING: no body for function strtoull
+//WARNING: no body for function __errno_location
+
+
+//Potential properties:
+
+//no-data-race:
+// ./esbmc --no-div-by-zero-check --force-malloc-success --state-hashing --add-symex-value-sets --no-align-check --k-step 2 --floatbv --unlimited-k-steps --no-vla-size-check "/home/erdnakram/Documents/Memcached Clone/memcached github git clone/memcached/safe_strtoull_harness.c" --64 --witness-output witness.graphml --no-pointer-check --no-bounds-check --data-races-check --no-assertions --k-induction --max-inductive-step 3 
+// Segmentation fault (core dumped), check again later
+
+
+//no-overflow.prp:
+// ./esbmc --no-div-by-zero-check --force-malloc-success --state-hashing --add-symex-value-sets --no-align-check --k-step 2 --floatbv --unlimited-k-steps --no-vla-size-check "/home/erdnakram/Documents/Memcached Clone/memcached github git clone/memcached/safe_strtoull_harness.c" --64 --witness-output witness.graphml --no-pointer-check --no-bounds-check --overflow-check --no-assertions --k-induction --max-inductive-step 3
+// Infinite loop unwinding, check again later
+// presumedly because string.c isnt limited, how do i limit a function that i dont even directly call?
+// also what is line 319 in string.c
+
+//termination.prp:
+// ./esbmc --no-div-by-zero-check --force-malloc-success --state-hashing --add-symex-value-sets --no-align-check --k-step 2 --floatbv --unlimited-k-steps --no-vla-size-check "/home/erdnakram/Documents/Memcached Clone/memcached github git clone/memcached/safe_strtoull_harness.c" --64 --witness-output witness.graphml --no-pointer-check --no-bounds-check --no-assertions --termination --max-inductive-step 3 
+// Infinite loop unwinding, check again later
+// presumedly because string.c isnt limited, how do i limit a function that i dont even directly call?
+// also what is line 319 in string.c
+
+//unreach-call.prp:
+// ./esbmc --no-div-by-zero-check --force-malloc-success --state-hashing --add-symex-value-sets --no-align-check --k-step 2 --floatbv --unlimited-k-steps --no-vla-size-check "/home/erdnakram/Documents/Memcached Clone/memcached github git clone/memcached/safe_strtoull_harness.c" --64 --witness-output witness.graphml --enable-unreachability-intrinsic --no-pointer-check --interval-analysis --no-bounds-check --error-label ERROR --goto-unwind --unlimited-goto-unwind --k-induction --max-inductive-step 3 
+// verification successful (up to the nondet variable limit i set)
+
+//valid-memcleanup.prp:
+// ./esbmc --no-div-by-zero-check --force-malloc-success --state-hashing --add-symex-value-sets --no-align-check --k-step 2 --floatbv --unlimited-k-steps --no-vla-size-check "/home/erdnakram/Documents/Memcached Clone/memcached github git clone/memcached/safe_strtoull_harness.c" --64 --witness-output witness.graphml --no-pointer-check --no-bounds-check --memory-leak-check --no-assertions --incremental-bmc 
+// Infinite loop unwinding, check again later
+// presumedly because string.c isnt limited, how do i limit a function that i dont even directly call?
+// also what is line 319 in string.c
+
+//valid-memsafety.prp:
+// ./esbmc --no-div-by-zero-check --force-malloc-success --state-hashing --add-symex-value-sets --no-align-check --k-step 2 --floatbv --unlimited-k-steps --no-vla-size-check "/home/erdnakram/Documents/Memcached Clone/memcached github git clone/memcached/safe_strtoull_harness.c" --64 --witness-output witness.graphml --memory-leak-check --no-reachable-memory-leak --no-assertions --no-abnormal-memory-leak --malloc-zero-is-null --incremental-bmc 
+// Counterexample found at line 23: errno = 0; so presumedly just because it doesnt know what errno is, fix that
+
+
+//maybe if i implement strtoull (or even __errno_location) the termination problem goes away?
+//or maybe the problem is actually with safe_strtoull_harness.c line 166
