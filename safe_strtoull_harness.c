@@ -15,6 +15,12 @@
 //https://stackoverflow.com/questions/2054939/is-char-signed-or-unsigned-by-default/2054941#2054941
 //https://stackoverflow.com/questions/436513/char-signed-char-char-unsigned-char
 
+//needed implicit declarations
+extern unsigned int __VERIFIER_nondet_uint();
+extern uint64_t __VERIFIER_nondet_ulonglong();
+extern char __VERIFIER_nondet_char(); 
+//static bool safe_strtoull(const char *str, uint64_t *out);
+extern unsigned long long int strtoull (const char *__restrict __nptr, char **__restrict __endptr, int __base);
 
 bool safe_strtoull(const char *str, uint64_t *out) {
     //how does the length of a uint64_t compare to a long long?
@@ -282,6 +288,9 @@ static enum test_return test_safe_strtoull(void) {
 
 //delta, initial and req_cas_id can all be taken from the proxy_internal.c/_meta_flags object instance (but arent always, watch out)
 
+
+//running pure ./esbmc safe_strtoull_harness.c
+// -> infinite safe_strtoull_harness.c line 167 loop
 //ESBMC doesnt understand errno or strtoull?
 //WARNING: no body for function __errno_location
 //WARNING: no body for function strtoull
