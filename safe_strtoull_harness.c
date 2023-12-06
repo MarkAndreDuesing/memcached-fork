@@ -71,7 +71,7 @@ bool safe_strtoull(const char *str, uint64_t *out) {
         return true;
     }
     return false;
-    //safe_strtoull also never inputs  oroutputs the &endptr value, so becase of the black box nature we cant really use it 
+    //safe_strtoull also never inputs  or outputs the &endptr value, so becase of the black box nature we cant really use it 
     //repeatedly use it on the same string, the way we could with strtoull
 
 //out of interest rewrite this with compacted if/else clauses, rather than just if -> return; also useful for assertions about reachability
@@ -116,19 +116,19 @@ int main(){
 
 //check for inputs by seeing where strtoull is used in memcached
 //check for how delta, pr, _meta_flags, request[] and token[] definitions work
-    uint64_t req_cas_id = 0;
-    safe_strtoull(&pr->request[pr->token[5]],&req_cas_id)
+    //uint64_t req_cas_id = 0;
+    //safe_strtoull(&pr->request[pr->token[5]],&req_cas_id)
 
-    uint64_t delta;
-    safe_strtoull(&pr->request[pr->tokens[i]+1],&delta)
+    //uint64_t delta;
+    //safe_strtoull(&pr->request[pr->tokens[i]+1],&delta)
 
-    safe_strtoull(&pr->request[pr->tokens[i]+1], &of->initial)
+    //safe_strtoull(&pr->request[pr->tokens[i]+1], &of->initial)
 
     //&of is an instance of _meta_flags
 
-    uint64_t value;
-    ptr = ITEM_data(it);
-    safe_strtoull(ptr,&value)
+    //uint64_t value;
+    //ptr = ITEM_data(it);
+    //safe_strtoull(ptr,&value)
 //understand where ITEM_data(it) is defined and how its used
 //from memcached.h:
 /**
@@ -144,31 +144,49 @@ int main(){
 //logically i assume we only take the uint64_t cas part of the string and return it with our *out
 //also keep in mind ITEM_get_cas and ITEM_set_cas in this regard
     
-    char *val;
-    restart_get_kv(ctx, &key, &val);
-    uint64_t bigval_uint = 0;
-    safe_strtoull(val, &bigval_uint);
+    //char *val;
+    //restart_get_kv(ctx, &key, &val);
+    //uint64_t bigval_uint = 0;
+    //safe_strtoull(val, &bigval_uint);
 //watch out! restart_get_kv reads in a line and sets &val to (the end of?) the adresse of that line as a string.
 //this val is then used in the various _mc_meta_load_cb switch cases of strtoull
 
 
+	unsigned int sizeStr = __VERIFIER_nondet_uint();
+    //unsigned int sizeDst = UINT_MAX;
+	if(sizeStr >= 15 || sizeStr <= 3) {abort();} //in this case sizeDst cant be smaller than 0, because were using unsigned int
+	char str[sizeStr];
+
+    uint64_t strVal = __VERIFIER_nondet_ulonglong();
+
+
+
 //Main Verification Harness:
 
-	for(unsigned int i = 0; i < ((i < sizeDst-1)&&(i < sizeSrc-1)); i++) {//could also do just: i < sizeDst-1
-		src[i] = __VERIFIER_nondet_char(); 
-		//src[i] = 'a'; 
+    for(unsigned int i = 0; i < sizeStr-1; i++) {//fill up the string fully with random chars
+		str[i] = __VERIFIER_nondet_char(); 
+		//src[i] = ' '; 
 	}
-	src[minimum(sizeDst-1,sizeSrc-1)] = '\0';//were filling up src to the maximum size of dst or src, whichever comes first
-	//could also do just: src[sizeDst-1] = '\0'; 
+	str[sizeStr-1] = '\0'
 
-	safe_strcpy(dst, src, sizeDst);
+    bool safe = safe_strtoull(str,&strVal);
+    //safe_strtoull(const char *str, uint64_t *out)
+
+	//safe_strcpy(dst, src, sizeDst);
+    //safe_strcpy(char *dst, const char *src, const size_t dstmax);
 
 //Encode Postcondition (Assert):
-	if(dst[0] != src[0]) {
-        printf("assert(false)\n");
-		reach_error();
-	}
-	return 0;
+	
+    //if(dst[0] != src[0]) {
+    //    printf("assert(false)\n");
+	//	reach_error();
+	//}
+
+    if(safe){
+        return 1;
+    } else{
+	    return 0;
+    }
 }
 
 
