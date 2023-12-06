@@ -48,7 +48,7 @@ int main(){
 
 //Main Verification Harness:
 
-	for(int i = 0; i < ((i < sizeDst-1)&&(i < sizeSrc-1)); i++) {//could also do just: i < sizeDst-1
+	for(unsigned int i = 0; i < ((i < sizeDst-1)&&(i < sizeSrc-1)); i++) {//could also do just: i < sizeDst-1
 		src[i] = __VERIFIER_nondet_char(); 
 		//src[i] = 'a'; 
 	}
