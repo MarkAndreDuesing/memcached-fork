@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
-
 #include <stdint.h>//for uint64_t
 #include <stdbool.h>//for bool
 
@@ -16,8 +15,6 @@
 //https://stackoverflow.com/questions/2054939/is-char-signed-or-unsigned-by-default/2054941#2054941
 //https://stackoverflow.com/questions/436513/char-signed-char-char-unsigned-char
 
-static char *uriencode_map[256];
-static char uriencode_str[768];
 
 bool safe_strtoull(const char *str, uint64_t *out) {
     //how does the length of a uint64_t compare to a long long?
@@ -107,4 +104,161 @@ bool safe_strtoull(const char *str, uint64_t *out) {
 //https://www.tutorialspoint.com/c_standard_library/c_macro_erange.htm
 
 
-//notes+#include <stdint.h>, #include <stdbool.h> added
+
+
+
+
+
+int main(){
+
+
+//Encode Precondition (Arrange):
+
+//check for inputs by seeing where strtoull is used in memcached
+//check for how delta, pr, _meta_flags, request[] and token[] definitions work
+    uint64_t req_cas_id = 0;
+    safe_strtoull(&pr->request[pr->token[5]],&req_cas_id)
+
+    uint64_t delta;
+    safe_strtoull(&pr->request[pr->tokens[i]+1],&delta)
+
+    safe_strtoull(&pr->request[pr->tokens[i]+1], &of->initial)
+
+    //&of is an instance of _meta_flags
+
+    uint64_t value;
+    ptr = ITEM_data(it);
+    safe_strtoull(ptr,&value)
+//understand where ITEM_data(it) is defined and how its used
+//from memcached.h:
+/**
+* item is used to hold an item structure created after reading the command
+* line of set/add/replace commands, but before we finished reading the actual
+* data. The data is read into ITEM_data(item) to avoid extra copying.
+*/
+//#define ITEM_data(item) ((char*) &((item)->data) + (item)->nkey + 1 \
+//     + (((item)->it_flags & ITEM_CFLAGS) ? sizeof(client_flags_t) : 0) \
+//     + (((item)->it_flags & ITEM_CAS) ? sizeof(uint64_t) : 0))
+
+//so I think we just take the (item)->data from ptr, with data being defined as union{uint64_t cas; char end;} data[];
+//logically i assume we only take the uint64_t cas part of the string and return it with our *out
+//also keep in mind ITEM_get_cas and ITEM_set_cas in this regard
+    
+    char *val;
+    restart_get_kv(ctx, &key, &val);
+    uint64_t bigval_uint = 0;
+    safe_strtoull(val, &bigval_uint);
+//watch out! restart_get_kv reads in a line and sets &val to (the end of?) the adresse of that line as a string.
+//this val is then used in the various _mc_meta_load_cb switch cases of strtoull
+
+
+//Main Verification Harness:
+
+	for(unsigned int i = 0; i < ((i < sizeDst-1)&&(i < sizeSrc-1)); i++) {//could also do just: i < sizeDst-1
+		src[i] = __VERIFIER_nondet_char(); 
+		//src[i] = 'a'; 
+	}
+	src[minimum(sizeDst-1,sizeSrc-1)] = '\0';//were filling up src to the maximum size of dst or src, whichever comes first
+	//could also do just: src[sizeDst-1] = '\0'; 
+
+	safe_strcpy(dst, src, sizeDst);
+
+//Encode Postcondition (Assert):
+	if(dst[0] != src[0]) {
+        printf("assert(false)\n");
+		reach_error();
+	}
+	return 0;
+}
+
+
+//helpful note from memcached/proxy_internal.c:
+    // TODO (v2): these safe_str* functions operate on C _strings_, but these
+    // tokens simply end with a space or carriage return/newline, so we either
+    // need custom functions or validate harder that these calls won't bite us
+    // later.
+
+
+/*
+a context safe_strtoull is used in is:
+for (i = start; i < pr->ntokens; i++) {
+        uint8_t o = (uint8_t)pr->request[pr->tokens[i]];
+        // zero out repeat flags so we don't over-parse for return data.
+        if (o >= 127 || seen[o] != 0) {
+            *errstr = "CLIENT_ERROR duplicate flag";
+            return -1;
+        }
+        seen[o] = 1;
+        switch (o) {
+        ...
+case 'C': // mset, mdelete, marithmetic
+                if (!safe_strtoull(&pr->request[pr->tokens[i]+1], &of->req_cas_id)) {
+                    *errstr = "CLIENT_ERROR bad token in command line format";
+                    of->has_error = true;
+                } else {
+                    of->has_cas = true;
+                }
+                break;
+Here its basically an error check with the side effect of changing the value of &of->req_cas_id. Watch out for this, 
+as safe_strtoull generally produces hard to see side effects this way
+*/
+
+/*
+Intended functionality of safe_strtoull from testapp.c:
+static enum test_return test_safe_strtoull(void) {
+    uint64_t val;
+    assert(safe_strtoull("123", &val));
+    assert(val == 123);
+    assert(safe_strtoull("+123", &val));
+    assert(val == 123);
+    assert(!safe_strtoull("", &val));  // empty
+    assert(!safe_strtoull("123BOGUS", &val));  // non-numeric
+    assert(!safe_strtoull("92837498237498237498029383", &val)); // out of range
+    assert(!safe_strtoull(" issue221", &val));  // non-numeric
+
+    // extremes:
+    assert(safe_strtoull("18446744073709551615", &val)); // 2**64 - 1
+    assert(val == 18446744073709551615ULL);
+    assert(!safe_strtoull("18446744073709551616", &val)); // 2**64
+    assert(!safe_strtoull("-1", &val));  // negative
+
+    // huge number, with a negative sign _past_ the value
+    assert(safe_strtoull("18446744073709551615\r\nextrastring-morestring", &val));
+    return TEST_PASS;
+}
+*/
+
+
+//what about
+//assert(safe_strtoull("123 999", &val));
+//assert(val == 123);
+//assert(safe_strtoull("123\n999", &val));
+//assert(val == 123);
+//make assertions about errno value
+
+//write down a concrete list of possible experiments, 
+//ending with investigating a property with the broadest possible input values
+
+// in a very expanded experiment, should i also add _meta_flag_preparse and other methods that use safe_strtoull in the harness?
+
+
+//uses of safe_strtoull in memcached:
+//proxy_internal.c/process_update_cmd
+//proxy_internal.c/process_arithmetic_cmd
+//proxy_internal.c/_meta_flag_preparse
+//testapp.c/test_safe_strtoull
+//proto_text.c/_meta_flag_preparse
+//proto_text.c/process_update_command
+//proto_text.c/process_arithmetic_command
+//memcached.c/do_add_delta
+//memcached.c/_mc_meta_load_cb (in various different switch cases)
+
+//_meta_flag_preparse,process_arithmetic_cmd and process_update_cmd are reused 
+//in both proxy_internal.c and proto_text.c see if theyre actually identical
+
+
+//pr created in proto_proxy.c/proxy_process_command ?
+//pr stems from &rq in proxy_request.c/mcp_request_render and mcp_parser_t in mcplib_request ?
+//and rq stems from luaL_checkudata() which is a method from an outside library?
+
+//delta, initial and req_cas_id can all be taken from the proxy_internal.c/_meta_flags object instance (but arent always, watch out)
