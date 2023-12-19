@@ -333,3 +333,45 @@ static enum test_return test_safe_strtoull(void) {
 
 //maybe if i implement strtoull (or even __errno_location) the termination problem goes away?
 //or maybe the problem is actually with safe_strtoull_harness.c line 166
+
+
+
+//before fully implementing strtoull() reference back to your workflow. start by not implementing -> nondeterministic result -> then very simplified version -> then version without extra safety checks etc -> then full version (what else am i missing)
+
+//Implementing errno:
+//remember to explain why i have to implement and why the error esbmc returned isnt possible (for which you need to make certain you understand the esbmc commands and nondet properly!!!)
+
+//errno is declared in errno.h, under 
+extern int *__errno_location (void) __THROW __attribute_const__;
+#define errno (*__errno_location())
+//errno #define(s) are along this path of #include packages:
+//include/errno.h -> bits/errno.h -> linux/errno.h -> asm/errno.h -> asm-generic/errno.h (cases 35-133)-> errno-base.h (cases 1-34)
+//the one we care about is ERANGE, which is under errno-base.h as: 
+#define	ERANGE		34	/* Math result not representable */
+
+//include/errno.h -> features.h -> sys/cdefs.h defines __THROW and __attribute_const__
+//maybe just ask what __attribute__ and __const__ in cdefs.h are and how errno generally works. or just ignore it
+
+//but start by just removing it entirely (or setting it =0)
+//still should understand how errno works, at what point is it called and the value potentially set to 34?
+//i guess the term definitions are set at compile time, 
+//and then at runtime *__errno_location() executes to check for potential overflows and returns 34 if there is one?
+
+// so this:
+//(errno == ERANGE)
+// is equivalent to this:
+//(*__errno_location() == 34)
+//Basically just imagine it as equivalent to a throw in Java where the system magically has some predefined throws
+
+//Thomas guess was: ESBMC doesnt recognise __errno_location(), so it assumes the adresse value can also be 0, 
+//but seeing that we use __errno_location() as a pointer with *, that means we could have a pointer to adresse 0, 
+//which would be invalid, hence why it returns an error when it shouldnt 
+//(not to be confused with the value of the errno being =0; i mean the adresse where the value is located could 
+//theoretically be 0 if the method is undefined -> adresse is nondet, and if that adresse is =0 we have an invalid adresse 
+//-> error (when there shouldnt be one))
+
+//his solution: pre-process, sodass __errno_location() mit in den dfinitionen ist
+//-> see file test_errno.c and test_errno.i
+
+
+
