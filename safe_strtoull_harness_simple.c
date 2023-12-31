@@ -1,16 +1,16 @@
 #include <stdio.h>
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdarg.h>
-#include <stdint.h>//for uint64_t
-#include <stdbool.h>//for bool
+#include <assert.h>  //for assertions
+#include <ctype.h>   //for isspace()
+#include <errno.h>   //for errno
+#include <string.h>  //for memchr
+#include <stdlib.h>  //for strtoull
+#include <stdint.h>  //for uint64_t
+#include <stdbool.h> //for bool
 
 #define xisspace(c) isspace((unsigned char)c)
 
-//needed implicit declarations
+//needed implicit declarations:
 extern unsigned int __VERIFIER_nondet_uint();
 extern uint64_t __VERIFIER_nondet_ulonglong();
 extern char __VERIFIER_nondet_char(); 
