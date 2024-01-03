@@ -183,6 +183,7 @@ bool safe_strtoull(const char *str, uint64_t *out) {
 int main(){
 //Encode Precondition (Arrange):
     unsigned int sizeStr = __VERIFIER_nondet_uint();
+    //if(sizeStr >= 25 || sizeStr <= 3) {abort();}
     if(sizeStr >= 15 || sizeStr <= 3) {abort();}
     //char str[sizeStr];
     char *str = (char *)malloc(sizeof(char) * sizeStr);
@@ -193,6 +194,7 @@ int main(){
     for (unsigned int i = 0; i < sizeStr-1; ++i){
         char temp = __VERIFIER_nondet_char();
         if(temp == '\0'){abort();}
+        if(temp == '-'){abort();}
         //str[i] = temp; 
         *(str + i) = temp; 
     }
@@ -203,9 +205,11 @@ int main(){
         
 //Encode Postcondition (Assert):
     if(safe){    
+        //assert(errno==0);
         free(str);
         return 1;
     } else{
+        //assert(0);
         free(str);
         return 0;
     }
