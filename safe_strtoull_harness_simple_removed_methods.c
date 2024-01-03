@@ -25,11 +25,11 @@ bool safe_strtoull(const char *str, uint64_t *out) {
     //various possible fixed values for endptr:
     //char *endptr = 'a';
     //char *endptr = 64;
+    //char test = 'a'; char *endptr = &test;
     //char *endptr = &str[0];// equivalent to:
-    char *endptr = str;
-    //char test = 'a'; char *endptr = &test;//test to see if this works correctly
-    //char *endptr = strchr(str, '\0');//test to see if this works correctly
-    //char *endptr = str + strlen(str);//test to see if this works correctly
+    //char *endptr = str;
+    //char *endptr = strchr(str, '\0');// equivalent to:
+    char *endptr = str + strlen(str);
     
 
     //unsigned long long ull = strtoull(str, &endptr, 10);
@@ -45,9 +45,9 @@ bool safe_strtoull(const char *str, uint64_t *out) {
         //assert(endptr != str);
         //assert(xisspace(*endptr));
         if ((long long) ull < 0) {
-            //if (memchr(str, '-', endptr - str) != NULL) {
-            //    return false;
-            //}
+            if (memchr(str, '-', endptr - str) != NULL) {
+                return false;
+            }
         }
         *out = ull;
         return true;
