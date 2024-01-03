@@ -30,7 +30,8 @@ bool safe_strtoull(const char *str, uint64_t *out) {
     //char *endptr = str;
     //char *endptr = strchr(str, '\0');// equivalent to:
     char *endptr = str + strlen(str);
-    
+    //assert(*endptr=='\0');
+    //assert(endptr != str);
 
     //unsigned long long ull = strtoull(str, &endptr, 10);
     unsigned long long ull = 1;
@@ -45,13 +46,16 @@ bool safe_strtoull(const char *str, uint64_t *out) {
         //assert(endptr != str);
         //assert(xisspace(*endptr));
         if ((long long) ull < 0) {
+            assert(0);//->TRUE, unreachable
             if (memchr(str, '-', endptr - str) != NULL) {
                 return false;
             }
         }
         *out = ull;
+        //assert(0);//->FALSE_REACH, reachable
         return true;
     }
+    assert(0);//->TRUE, unreachable, if we exclude \0 from being added in our harness
     return false;
 }
 
