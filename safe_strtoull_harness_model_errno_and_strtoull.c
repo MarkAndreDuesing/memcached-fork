@@ -183,8 +183,8 @@ bool safe_strtoull(const char *str, uint64_t *out) {
 int main(){
 //Encode Precondition (Arrange):
     unsigned int sizeStr = __VERIFIER_nondet_uint();
-    //if(sizeStr >= 25 || sizeStr <= 3) {abort();}
-    if(sizeStr >= 15 || sizeStr <= 3) {abort();}
+    if(sizeStr >= 25 || sizeStr <= 3) {abort();}
+    //if(sizeStr >= 15 || sizeStr <= 3) {abort();}
     //char str[sizeStr];
     char *str = (char *)malloc(sizeof(char) * sizeStr);
     uint64_t strVal = __VERIFIER_nondet_ulonglong();
