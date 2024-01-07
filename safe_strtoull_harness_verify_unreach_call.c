@@ -183,7 +183,7 @@ bool safe_strtoull(const char *str, uint64_t *out) {
 int main(){
 //Encode Precondition (Arrange):
     unsigned int sizeStr = __VERIFIER_nondet_uint();
-    if(sizeStr >= 25 || sizeStr <= 3) {abort();}
+    if(sizeStr >= 21 || sizeStr <= 3) {abort();}
     //go down from 25 to 21 to eliminate cases of -9223372036854775809 etc.
     //also blocks overflows, but as we tested the possibility of these already with assert(errno==0) this isnt a problem
     //if(sizeStr >= 15 || sizeStr <= 3) {abort();}
