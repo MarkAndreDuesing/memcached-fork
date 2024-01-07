@@ -192,6 +192,7 @@ int main(){
     for (unsigned int i = 0; i < sizeStr-1; ++i){
         char temp = __VERIFIER_nondet_char();
         if(temp == '\0'){abort();}
+        if(temp == '-'){abort();}
         *(str + i) = temp; 
     }
     *(str + (sizeStr-1)) = '\0';  
