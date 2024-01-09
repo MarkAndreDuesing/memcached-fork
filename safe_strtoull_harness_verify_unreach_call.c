@@ -18,8 +18,8 @@ extern uint64_t __VERIFIER_nondet_ulonglong();
 extern char __VERIFIER_nondet_char(); 
 
 int errno = 0;
-//char *endptr;
-//unsigned long long ull= 0;
+char *endptr;
+unsigned long long ull= 0;
 
 unsigned long long int strtoull(const char *ptr, char **end, int base)
 {//typical strtoull implementation throws an error if ptr is set to NULL
@@ -142,16 +142,16 @@ bool safe_strtoull(const char *str, uint64_t *out) {
     assert(out != NULL);
     //errno = 0;
     *out = 0;
-    char *endptr;
+    //char *endptr;
 
-    unsigned long long ull = strtoull(str, &endptr, 10);
-    //ull = strtoull(str, &endptr, 10);
+    //unsigned long long ull = strtoull(str, &endptr, 10);
+    ull = strtoull(str, &endptr, 10);
     if ((errno == ERANGE) || (str == endptr)) {
         return false;
     }
 
     if (xisspace(*endptr) || (*endptr == '\0' /*&& endptr != str*/)) {
-        assert(endptr != str);
+        //assert(endptr != str);
         if ((long long) ull < 0) {
             if (memchr(str, '-', endptr - str) != NULL) {
                 return false;
@@ -160,7 +160,7 @@ bool safe_strtoull(const char *str, uint64_t *out) {
         *out = ull;
         return true;
     }
-    assert(endptr != str);
+    //assert(endptr != str);
     return false;
 }
 
@@ -168,7 +168,7 @@ bool safe_strtoull(const char *str, uint64_t *out) {
 int main(){
 //Encode Precondition (Arrange):
     unsigned int sizeStr = __VERIFIER_nondet_uint();
-    if(sizeStr >= 21 || sizeStr <= 3) {abort();}
+    if(sizeStr >= 21|| sizeStr <= 3) {abort();}
     //go down from 25 to 21 to eliminate cases of -9223372036854775809 etc.
     //also blocks overflows, but as we tested the possibility of these already with assert(errno==0) this isnt a problem
     //if(sizeStr >= 15 || sizeStr <= 3) {abort();}
@@ -190,14 +190,36 @@ int main(){
 
     bool safe = safe_strtoull(str,&strVal);
     
-    //assert(endptr>=str);
+    //assert(endptr>=str);//in other words: endptr - str >= 0 from memchr(...)
     /*if (strVal!=0){
         assert(endptr>str);
+        assert(safe);
     }*/
     //assert(endptr!=NULL);
+   
+    /*
+    if(errno != ERANGE && str != endptr && (xisspace(*endptr) && ((long long) ull < 0 && 
+        memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0) || *endptr == '\0' && 
+        ((long long) ull < 0 && memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0))){
+            assert(safe);
+    } else {
+        assert(!safe);
+    }
+    */
+
+/*
+   assert((safe && errno != ERANGE && str != endptr && (xisspace(*endptr) && ((long long) ull < 0 && 
+        memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0) || *endptr == '\0' && 
+        ((long long) ull < 0 && memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0)))
+        ||
+        (!safe && (errno == ERANGE) || (str == endptr) || ((errno != ERANGE) && (str != endptr) && 
+        (((!xisspace(*endptr)) && (*endptr != '\0')) || (((long long) ull < 0) && 
+        (memchr(str, '-', endptr - str) != NULL) && (xisspace(*endptr) || (*endptr == '\0')))))));
+*/
+
 //Encode Postcondition (Assert):
     if(safe){    
-        assert(errno!=ERANGE);//covered by the path assertion, mention that
+        //assert(errno!=ERANGE);//covered by the path assertion, mention that
         //assert(!((*(str) == '-')&&(*(str+1) != '0')));//same as:
         //assert(((*(str) != '-')||(*(str+1) == '0')));
         //assert(strVal==...)
@@ -213,36 +235,19 @@ int main(){
         //->
         //assert(strVal==ull);
 
-        /*
+        
         assert(errno != ERANGE && str != endptr && (xisspace(*endptr) && ((long long) ull < 0 && 
         memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0) || *endptr == '\0' && 
         ((long long) ull < 0 && memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0)));
-        */
+        
         free(str);
     } else {
         //assert(errno==34 || ...);
 
-        /*
-        assert(
-        (errno == ERANGE) || 
-        (str == endptr) || 
-        (
-            (errno != ERANGE) && (str != endptr) && 
-                (
-                    ((!xisspace(*endptr)) && (*endptr != '\0'))
-                    || 
-                    (
-                    ((long long) ull < 0) && (memchr(str, '-', endptr - str) != NULL) && 
-                        (
-                            xisspace(*endptr) 
-                            || 
-                            (*endptr == '\0')
-                        )
-                    )
-                )
-        )
-        );
-        */
+        assert((errno == ERANGE) || (str == endptr) || ((errno != ERANGE) && (str != endptr) && 
+        (((!xisspace(*endptr)) && (*endptr != '\0')) || (((long long) ull < 0) && 
+        (memchr(str, '-', endptr - str) != NULL) && (xisspace(*endptr) || (*endptr == '\0'))))));
+        
         free(str);
     }
     return 0;
