@@ -18,6 +18,8 @@ extern uint64_t __VERIFIER_nondet_ulonglong();
 extern char __VERIFIER_nondet_char(); 
 
 int errno = 0;
+char *endptr;
+unsigned long long ull= 0;
 
 unsigned long long int strtoull(const char *ptr, char **end, int base)
 {//typical strtoull implementation throws an error if ptr is set to NULL
@@ -140,42 +142,24 @@ bool safe_strtoull(const char *str, uint64_t *out) {
     assert(out != NULL);
     //errno = 0;
     *out = 0;
-    char *endptr;
+    //char *endptr;
 
-    //various possible fixed values for endptr:
-    //char *endptr = 'a';
-    //char *endptr = 64;
-    //char test = 'a'; char *endptr = &test;
-    //char *endptr = &str[0];// equivalent to:
-    //char *endptr = str;
-    //char *endptr = strchr(str, '\0');// equivalent to:
-    //char *endptr = str + strlen(str);
-    //assert(*endptr=='\0');
-    //assert(endptr != str);
-
-    unsigned long long ull = strtoull(str, &endptr, 10);
-    //unsigned long long ull = 1;
+    //unsigned long long ull = strtoull(str, &endptr, 10);
+    ull = strtoull(str, &endptr, 10);
     if ((errno == ERANGE) || (str == endptr)) {
         return false;
     }
 
-    if (xisspace(*endptr) || (*endptr == '\0' && endptr != str)) {
-        //potential assertions for the value of endptr:
-        //assert(*endptr == 'a');
-        //assert(*endptr == '\0');
-        //assert(endptr != str);
-        //assert(xisspace(*endptr));
+    if (xisspace(*endptr) || (*endptr == '\0' /*&& endptr != str*/)) {
+        assert(endptr != str);
         if ((long long) ull < 0) {
-//            assert(0);//->TRUE, unreachable
             if (memchr(str, '-', endptr - str) != NULL) {
                 return false;
             }
         }
         *out = ull;
-//        assert(0);->FALSE_REACH, reachable
         return true;
     }
-    //assert(0);//->TRUE, unreachable, if we exclude \0 from being added in our harness
     return false;
 }
 
@@ -204,34 +188,79 @@ int main(){
     *(str + (sizeStr-1)) = '\0';  
 
     bool safe = safe_strtoull(str,&strVal);
-        
+    
+    assert(endptr>=str);
+    if (strVal!=0){
+        assert(endptr>str);
+    }
+    assert(endptr!=NULL);
 //Encode Postcondition (Assert):
     if(safe){    
-        assert(errno==0);
-        //assert(!((*(str) == '-')&&(*(str+1) == '1')));
-        //a simplified version of ...
-        //the case of "-1..." shouldnt be able to happen in 'safe'
-        //should do it as:
-        //if((*(str) == '-')&&(*(str+1) != '0')){
-            //assert(0);//or: __ESBMC_unreachable() with --enable-unreachability-intrinsic 
-            //__ESBMC_unreachable();
-            //Leads to:
-            //Violated property:
-            //file safe_strtoull_harness_model_errno_and_strtoull.c line 219 column 9 function main
-            //reachability: unreachable code reached
-            //which is actually a less useful error report
-        //}
-        //assert(!((*(str) == '-')&&(*(str+1) != '0')));
-        assert(((*(str) != '-')||(*(str+1) == '0')));
-        //not possible because of cases like: "-9268822016853266437 .2"
+        assert(errno!=ERANGE);//covered by the path assertion, mention that
+        //assert(!((*(str) == '-')&&(*(str+1) != '0')));//same as:
+        //assert(((*(str) != '-')||(*(str+1) == '0')));
         //assert(strVal==...)
+
+        //Through simplification of the boolean expression:
+        assert(errno != ERANGE && str != endptr && (xisspace(*endptr) && ((long long) strVal < 0 && 
+        memchr(str, '-', endptr - str) == NULL || (long long) strVal >= 0) || *endptr == '\0' && 
+        ((long long) strVal < 0 && memchr(str, '-', endptr - str) == NULL || (long long) strVal >= 0)));
+        //considering the positive case where strVal == ull always, unlike the false case where 
+        //*out = ull; is never set so ull can be different from strVal like with "-1"
+        //->
+        assert(strVal==ull);
+
+        assert(errno != ERANGE && str != endptr && (xisspace(*endptr) && ((long long) ull < 0 && 
+        memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0) || *endptr == '\0' && 
+        ((long long) ull < 0 && memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0)));
+
         free(str);
-        return 1;
-    } else{
+    } else {
         //assert(errno==34 || ...);
+
+        
+        assert(
+        (errno == ERANGE) || 
+        (str == endptr) || 
+        (
+            (errno != ERANGE) && (str != endptr) && 
+                (
+                    ((!xisspace(*endptr)) && (*endptr != '\0'))
+                    || 
+                    (
+                    ((long long) ull < 0) && (memchr(str, '-', endptr - str) != NULL) && 
+                        (
+                            xisspace(*endptr) 
+                            || 
+                            (*endptr == '\0')
+                        )
+                    )
+                )
+        )
+        );
+
         free(str);
-        return 0;
     }
+    return 0;
 }
 //make assertions about str, strval and safe that covers all cases and how they should be
 //the remove situations to remove found errors from the range and potentially find more errors
+
+
+/*
+Simplified More:
+
+safe == false:
+
+errno == ERANGE || str == endptr || errno != ERANGE && str != endptr && 
+(!xisspace(*endptr) && *endptr != '\0' || (long long) ull < 0 && 
+memchr(str, '-', endptr - str) != NULL && (xisspace(*endptr) || *endptr == '\0'))
+
+
+
+safe == true:
+
+errno != ERANGE && str != endptr && (xisspace(*endptr) && ((long long) ull < 0 && 
+memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0) || *endptr == '\0' && 
+((long long) ull < 0 && memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0))
+*/
