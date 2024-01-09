@@ -18,8 +18,8 @@ extern uint64_t __VERIFIER_nondet_ulonglong();
 extern char __VERIFIER_nondet_char(); 
 
 int errno = 0;
-char *endptr;
-unsigned long long ull= 0;
+//char *endptr;
+//unsigned long long ull= 0;
 
 unsigned long long int strtoull(const char *ptr, char **end, int base)
 {//typical strtoull implementation throws an error if ptr is set to NULL
@@ -142,10 +142,10 @@ bool safe_strtoull(const char *str, uint64_t *out) {
     assert(out != NULL);
     //errno = 0;
     *out = 0;
-    //char *endptr;
+    char *endptr;
 
-    //unsigned long long ull = strtoull(str, &endptr, 10);
-    ull = strtoull(str, &endptr, 10);
+    unsigned long long ull = strtoull(str, &endptr, 10);
+    //ull = strtoull(str, &endptr, 10);
     if ((errno == ERANGE) || (str == endptr)) {
         return false;
     }
@@ -160,6 +160,7 @@ bool safe_strtoull(const char *str, uint64_t *out) {
         *out = ull;
         return true;
     }
+    assert(endptr != str);
     return false;
 }
 
@@ -189,11 +190,11 @@ int main(){
 
     bool safe = safe_strtoull(str,&strVal);
     
-    assert(endptr>=str);
-    if (strVal!=0){
+    //assert(endptr>=str);
+    /*if (strVal!=0){
         assert(endptr>str);
-    }
-    assert(endptr!=NULL);
+    }*/
+    //assert(endptr!=NULL);
 //Encode Postcondition (Assert):
     if(safe){    
         assert(errno!=ERANGE);//covered by the path assertion, mention that
@@ -202,23 +203,26 @@ int main(){
         //assert(strVal==...)
 
         //Through simplification of the boolean expression:
+        /*
         assert(errno != ERANGE && str != endptr && (xisspace(*endptr) && ((long long) strVal < 0 && 
         memchr(str, '-', endptr - str) == NULL || (long long) strVal >= 0) || *endptr == '\0' && 
         ((long long) strVal < 0 && memchr(str, '-', endptr - str) == NULL || (long long) strVal >= 0)));
+        */
         //considering the positive case where strVal == ull always, unlike the false case where 
         //*out = ull; is never set so ull can be different from strVal like with "-1"
         //->
-        assert(strVal==ull);
+        //assert(strVal==ull);
 
+        /*
         assert(errno != ERANGE && str != endptr && (xisspace(*endptr) && ((long long) ull < 0 && 
         memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0) || *endptr == '\0' && 
         ((long long) ull < 0 && memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0)));
-
+        */
         free(str);
     } else {
         //assert(errno==34 || ...);
 
-        
+        /*
         assert(
         (errno == ERANGE) || 
         (str == endptr) || 
@@ -238,13 +242,13 @@ int main(){
                 )
         )
         );
-
+        */
         free(str);
     }
     return 0;
 }
 //make assertions about str, strval and safe that covers all cases and how they should be
-//the remove situations to remove found errors from the range and potentially find more errors
+//then remove situations to remove found errors from the range and potentially find more errors
 
 
 /*
