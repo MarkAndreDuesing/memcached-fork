@@ -7,14 +7,13 @@
 int main()
 {
   char *pEnd; unsigned long long int temp;
-  
   printf("value: %llu, \nwith input: \"\" \n",strtoull ("", &pEnd, 10));//ull value = 0; pEnd points to ''
   //printf("value: %llu, \nwith input: NULL \n",strtoull (NULL, &pEnd, 10));//-> Segmentation fault (core dumped)
   printf("value: %llu, \nwith input: \" \" \n",strtoull (" ", &pEnd, 10));//ull value = 0; pEnd points to ' '
   printf("value: %llu, \nwith input: \"A\" \n",strtoull ("A", &pEnd, 10));//ull value = 0; pEnd points to 'A'
 
   
-  char tempstr[] = "- 123";//char tempstr[] = "  123  ";
+  char tempstr[] = "0001-\n123";//char tempstr[] = "  123  ";
   printf("tempstr     :%p, *tempstr      :'%c'\n",tempstr, *tempstr); 
   printf("tempstr+1   :%p, *(tempstr+1)  :'%c'\n",tempstr+1, *(tempstr+1)); 
   printf("tempstr+2   :%p, *(tempstr+2)  :'%c'\n",tempstr+2, *(tempstr+2)); 
@@ -25,6 +24,8 @@ int main()
   printf("tempstr+7   :%p, *(tempstr+7)  :'%c'\n",tempstr+7, *(tempstr+7));
   printf("&tempstr+1  :%p, *(&tempstr+1) :'%c'\n",&tempstr+1, *(&tempstr+1)); 
   
+  temp = strtoull (tempstr, &pEnd, 10);
+  printf("value: %llu, and pEnd adresse: %p, with input: \"%s\" \n",temp,pEnd,tempstr); //input "0001-\n123" -> pEnd pointed to '-', value = 1
 
   printf("value: %llu, \nwith input: \"123\" \n",strtoull ("123", &pEnd, 10)); //ull value = 123; pEnd points to '' null string after 3
   printf("value: %llu, \nwith input: \" 123\" \n",strtoull (" 123", &pEnd, 10)); //ull value = 123; pEnd points to '' null string after 3

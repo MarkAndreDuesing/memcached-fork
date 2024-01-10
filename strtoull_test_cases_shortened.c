@@ -1,6 +1,79 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
+
+
+// Function to add a character to the beginning of a string
+void addCharToBeginning(char ch, const char *original, char *result) {
+    // Add the character to the beginning
+    result[0] = ch;
+
+    // Copy the original string to the new string starting from index 1
+    strcpy(result + 1, original);
+}
+
+void appendString(char **str, char c) {
+    //Credit: taken from Chat-GPT 
+    size_t currentLength = *str ? strlen(*str) : 0;
+    *str = realloc(*str, currentLength + 2);  //Allocate memory for the new character -> +2 to accommodate the new character and the null terminator
+    (*str)[currentLength] = c;
+    (*str)[currentLength + 1] = '\0';
+}
+
+
+int check_leading_chars(){
+  //char temp_char = 0;
+  /*
+  for (int k = 0; k < 128; k++) {
+	    char ch = k;
+      char str_temp[2]={ch,'\0'};
+	    strcat(str_temp,"123");
+      printf("%s", str_temp);
+	}
+  */
+  char *originalString = "123";
+  char *myString1 = NULL;	
+
+
+  for (int k = 0; k < 128; k++) {
+	    char ch = k;
+      
+      char resultString[strlen(originalString) + 2];
+      // Declare a static array for the result string (original length + 2 for the added character and null terminator)
+      addCharToBeginning(ch,"123",resultString);
+      printf("added prefix char: '%c' ; final string: %s\n", ch, resultString);
+
+      printf("value: %llu, with input: \"%s\"\n",strtoull (resultString, NULL, 10), resultString);
+      if(strtoull (resultString, NULL, 10) != 0){
+        appendString(&myString1, ch);
+        }
+  }
+  printf("\n\n\n");
+  for (int k = 0; k < strlen(myString1); k++) {printf(" digit:'%d', char:'%c'\n", myString1[k], myString1[k]);}
+  //-> strtoull is just like isspace with its interpretation of whitespace characters, accepting char:9-13,32 and then additionally 43 for '-', 45 for '+' and 48-57 for the digits 0-9
+
+
+  //check if i can have multiple of these whitespaces and '-' or '+' leading:
+  printf("value: %llu, with input: \"\\t\\n123\" \n",strtoull ("\t\t123", NULL, 10)); //-> ull = 123
+  printf("value: %llu, with input: \"\\n\\n123\" \n",strtoull ("\n\n123", NULL, 10)); //-> ull = 123
+  printf("value: %llu, with input: \"\\v\\n123\" \n",strtoull ("\v\v123", NULL, 10)); //-> ull = 123
+  printf("value: %llu, with input: \"\\f\\n123\" \n",strtoull ("\f\f123", NULL, 10)); //-> ull = 123
+  printf("value: %llu, with input: \"  123\" \n",strtoull ("  123", NULL, 10)); //-> ull = 123
+  printf("value: %llu, with input: \"--123\" \n",strtoull ("--123", NULL, 10)); //-> ull = 0
+  printf("value: %llu, with input: \"++123\" \n",strtoull ("++123", NULL, 10)); //-> ull = 0
+  //can have multiple leading whitespaces of any kind, but not - or +
+  //but i can have a whitespace, then a - or a +:
+  printf("value: %llu, with input: \" -123\" \n",strtoull (" -123", NULL, 10)); //-> ull = 18446744073709551493
+  printf("value: %llu, with input: \" +123\" \n",strtoull (" +123", NULL, 10)); //-> ull = 123
+
+  return 1;
+}
+
+
+
+
+
 
 int main()
 {
@@ -15,6 +88,10 @@ int main()
   printf("value: %llu, with input: \"123\" \n",strtoull ("123", &pEnd, 10)); //ull value = 123; pEnd points to '' null string after 3
   printf("value: %llu, with input: \" 123\" \n",strtoull (" 123", &pEnd, 10)); //ull value = 123; pEnd points to '' null string after 3
   printf("value: %llu, with input: \"123 \" \n",strtoull ("123 ", &pEnd, 10)); //ull value = 123; pEnd points to ' ' empty space after 3 (the first one, thats still within the string)
+
+  //chech whitespace characters
+  printf("value: %llu, with input: \"\\n123 \" \n",strtoull ("\n123", &pEnd, 10)); //ull value = 123; pEnd points to ' ' empty space after 3 (the first one, thats still within the string)
+  printf("value: %llu, with input: \"\\t123 \" \n",strtoull ("\t123", &pEnd, 10)); //ull value = 123; pEnd points to ' ' empty space after 3 (the first one, thats still within the string)
   
   printf("value: %llu, with input: \"000123\" \n",strtoull ("000123", &pEnd, 10));//ull value = 123 (leading 0's are interpreted as redundant)
   printf("value: %llu, with input: \"\\\\ 123\" \n",strtoull ("\\ 123", &pEnd, 10));//ull value = 0
@@ -48,7 +125,8 @@ int main()
   //unless the values are so negative that they cycle back into being overflows
   printf("value: %llu, with input: \"-18446744073709551616\" \n",strtoull ("-18446744073709551616", &pEnd, 10));//ull value = 18446744073709551615 -> errno == ERANGE
   printf("value: %llu, with input: \"-18446744073709551617\" \n",strtoull ("-18446744073709551617", &pEnd, 10));//ull value = 18446744073709551615 -> errno == ERANGE
-
+  
+  check_leading_chars();
   return 0;
 }
 

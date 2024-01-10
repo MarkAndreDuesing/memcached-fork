@@ -124,7 +124,7 @@ int main(){
 
 
     //assert(strcmp(str,"1111\0")==0);
-    //assert(strcmp(str,"1111")!=0);
+    //assert(strcmp(str,"1111")==0);
     //both true
 
     bool safe = safe_strtoull(str,&strVal);
