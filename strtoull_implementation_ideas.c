@@ -11,17 +11,16 @@
 
 int errno = 0;
 
-/* Not currently supported: leading whitespace, sign, 0x prefix, zero base */
 unsigned long long int strtoull(const char *ptr, char **end, int base)
 {//typical strtoull implementation throws an error if ptr is set to NULL
+//method breaks on /0 case as it should
+
 
 //added challenge to implementation as I needed to avoid using other methods ESBMC doesnt support in creating this
 
     char *str_start_ptr = ptr;
-    //see test_reference_error() works as expected
+    //see test_reference_error(). works as expected
 
-
-    //method breaks on /0 case as it should
 
 	unsigned long long ret = 0;
     bool negative_sign = false;
@@ -36,7 +35,7 @@ unsigned long long int strtoull(const char *ptr, char **end, int base)
     bool lead_space_break = false;
     //set to true as soon as a non-whitespace character is read
 
-	while (*ptr) {// test again when this is false! Just for *ptr=NULL or *ptr== '\0' too?
+	while (*ptr) {// false when *ptr== '\0'
 
 		int digit;//important to reset digit here
         //test if i set int digit = 0; here if i can remove them in the cases
@@ -77,6 +76,7 @@ unsigned long long int strtoull(const char *ptr, char **end, int base)
 //after first digit whitespaces break the sequence, so i need a case for after the first digit
 //and a case for '-' and '+' only as the first char (after any potential leading whitespaces), otherwise they also break the sequence
 
+        //Without errno implementation:
 		//ret *= base;
 		//ret += digit;//add to the end of the number
         //e.g. before ret was 4, then we have a new digit 5, then 4*10+5=45
@@ -185,7 +185,7 @@ int main()
   printf("value: %llu, \nwith input: \"123A\" \n",strtoull ("123A", &pEnd, 10));//ull value = 0; pEnd points to ''
 
   
-  char tempstr[] = "0000";//char tempstr[] = "  123  " // 0001-\n123  //0001++A //"5+ " //"5- "
+  char tempstr[] = "\t-1";//char tempstr[] = "  123  " // 0001-\n123  //0001++A //"5+ " //"5- "
   printf("tempstr     :%p, *tempstr      :'%c'\n",tempstr, *tempstr); 
   printf("tempstr+1   :%p, *(tempstr+1)  :'%c'\n",tempstr+1, *(tempstr+1)); 
   printf("tempstr+2   :%p, *(tempstr+2)  :'%c'\n",tempstr+2, *(tempstr+2)); 
@@ -254,98 +254,7 @@ printf("errno value: %d\n",errno); errno=0;
   printf("errno value: %d\n",errno); errno=0;
   printf("value: %llu, with input: \"-18446744073709551617\" \n",strtoull ("-18446744073709551617", &pEnd, 10));//ull value = 18446744073709551615 -> errno == ERANGE
   printf("errno value: %d\n",errno); errno=0;
-  
   //check_leading_chars();
   return 0;
 }
 
-
-
-
-
-
-/*
-#include <ctype.h>
-#include <errno.h>
-#include <limits.h>
-#include <stdlib.h>
-
-unsigned long long strtoull(const char *str, char **endptr, int base) {
-// Check for invalid base
-    if (base < 0 || (base != 0 && (base < 2 || base > 36))) {
-        errno = EINVAL;  // Invalid argument
-        if (endptr != NULL) {
-            *endptr = (char *)str;
-        }
-        return 0;
-    }
-
-    // Skip leading whitespace
-    while (isspace((unsigned char)*str)) {
-        str++;
-    }
-
-    // Determine the base if not specified
-    if (base == 0) {
-        if (*str == '0') {
-            base = (str[1] == 'x' || str[1] == 'X') ? 16 : 8;
-            if (base == 16) {
-                str += 2;  // Skip "0x" or "0X"
-            } else {
-                str++;  // Skip "0"
-            }
-        } else {
-            base = 10;
-        }
-    }
-
-    // Initialize variables
-    unsigned long long result = 0;
-    int digit;
-    unsigned long long maxDiv = ULLONG_MAX / base;
-    unsigned long long maxRem = ULLONG_MAX % base;
-
-    // Main conversion loop
-    while (*str) {
-        // Convert character to digit
-        if (isdigit((unsigned char)*str)) {
-            digit = *str - '0';
-        } else if (isalpha((unsigned char)*str)) {
-            digit = tolower((unsigned char)*str) - 'a' + 10;
-        } else {
-            break;
-        }
-
-        // Check for invalid digit for the given base
-        if (digit >= base) {
-            if (endptr != NULL) {
-                *endptr = (char *)str;
-            }
-            errno = EINVAL;  // Invalid argument
-            return ULLONG_MAX;
-        }
-
-        // Check for overflow
-        if (result > maxDiv || (result == maxDiv && digit > maxRem)) {
-            errno = ERANGE;  // Result too large
-            if (endptr != NULL) {
-                *endptr = (char *)str;
-            }
-            return ULLONG_MAX;
-        }
-
-        // Update result
-        result = result * base + digit;
-
-        // Move to the next character
-        str++;
-    }
-
-    // Set endptr if provided
-    if (endptr != NULL) {
-        *endptr = (char *)str;
-    }
-
-    return result;
-}
-*/
