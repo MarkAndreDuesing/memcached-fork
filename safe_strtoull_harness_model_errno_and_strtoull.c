@@ -183,7 +183,9 @@ bool safe_strtoull(const char *str, uint64_t *out) {
 int main(){
 //Encode Precondition (Arrange):
     unsigned int sizeStr = __VERIFIER_nondet_uint();
-    if(sizeStr >= 25 || sizeStr <= 3) {abort();}
+    if(sizeStr >= 21 || sizeStr <= 3) {abort();}
+    //go down from 25 to 21 to eliminate cases of -9223372036854775809 etc.
+    //also blocks overflows, but as we tested the possibility of these already with assert(errno==0) this isnt a problem
     //if(sizeStr >= 15 || sizeStr <= 3) {abort();}
     //char str[sizeStr];
     char *str = (char *)malloc(sizeof(char) * sizeStr);
@@ -194,7 +196,7 @@ int main(){
     for (unsigned int i = 0; i < sizeStr-1; ++i){
         char temp = __VERIFIER_nondet_char();
         if(temp == '\0'){abort();}
-        if(temp == '-'){abort();}
+        //if(temp == '-'){abort();}
         //str[i] = temp; 
         *(str + i) = temp; 
     }
@@ -205,12 +207,31 @@ int main(){
         
 //Encode Postcondition (Assert):
     if(safe){    
-        //assert(errno==0);
+        assert(errno==0);
+        //assert(!((*(str) == '-')&&(*(str+1) == '1')));
+        //a simplified version of ...
+        //the case of "-1..." shouldnt be able to happen in 'safe'
+        //should do it as:
+        //if((*(str) == '-')&&(*(str+1) != '0')){
+            //assert(0);//or: __ESBMC_unreachable() with --enable-unreachability-intrinsic 
+            //__ESBMC_unreachable();
+            //Leads to:
+            //Violated property:
+            //file safe_strtoull_harness_model_errno_and_strtoull.c line 219 column 9 function main
+            //reachability: unreachable code reached
+            //which is actually a less useful error report
+        //}
+        //assert(!((*(str) == '-')&&(*(str+1) != '0')));
+        assert(((*(str) != '-')||(*(str+1) == '0')));
+        //not possible because of cases like: "-9268822016853266437 .2"
+        //assert(strVal==...)
         free(str);
         return 1;
     } else{
-        //assert(0);
+        //assert(errno==34 || ...);
         free(str);
         return 0;
     }
 }
+//make assertions about str, strval and safe that covers all cases and how they should be
+//the remove situations to remove found errors from the range and potentially find more errors
