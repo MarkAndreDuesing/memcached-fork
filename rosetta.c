@@ -1,12 +1,14 @@
 //Credit: this file builds on rosetta.c, from https://sosy-lab.gitlab.io/research/tutorials/CPAchecker/Specification.html
 #include <stdlib.h>
 #include <assert.h>
+#include <stdbool.h>//for bool
 
 // nondet functions, one for each data type,
 // cf. __VERIFIER_nondet_X() at https://sv-comp.sosy-lab.org/2022/rules.php
 extern int __VERIFIER_nondet_int();
 extern char __VERIFIER_nondet_char();
 extern long __VERIFIER_nondet_long();
+extern _Bool __VERIFIER_nondet_bool();
 //...
 
 int *track_addr; //global variable
@@ -22,8 +24,9 @@ void reach_error(){assert(0);};
 
 int termination_test(){
   // # Termination
-
-  while (1) {}; // this is an infinite loop 
+  bool nondet_bool = __VERIFIER_nondet_bool();
+  while (nondet_bool) {};
+  //while (1) {}; // this is an infinite loop 
 
   //oddly unreach-call finishes processing (and returns VERIFICATION SUCCESSFUL)
   //unlike properties: valid-memsafety, valid-memclean, no-overflow and termination
@@ -286,7 +289,7 @@ int main() {
   //memtrack_t_memcleanup_f_test();
   //memtrack_f_memcleanup_f_test();
   //memtrack_cleanup_sumtest(1,2);
-  //termination_test();
+  termination_test();
 
 
 
@@ -299,7 +302,7 @@ int main() {
 //int *ptr3 = arr;
 //free(ptr3); // Invalid deallocation
 
-
+/*
 //Another FALSE_FREE: 
 //where we show that arrays are non-dynamic memory, even with non-determinism,
 //therefore dont need to be freed!
@@ -316,7 +319,7 @@ int main() {
   for (unsigned int i = 0; i < n-1; ++i){*(vals + i) = __VERIFIER_nondet_char();}
   *(vals + (n-1)) = '\0';  
   free(vals);
-
+*/
 
   return 0;
 }
