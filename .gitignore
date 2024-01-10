@@ -42,3 +42,13 @@ memcached-*.tar.gz.sha1
 /memcached.spec
 .*.swp
 /compile_commands.json
+output/xisspace_tests
+strtoull_test_cases.exe
+util2.c
+.vscode/settings.json
+output/safe_strtoull_harness_fixed_values
+output/safe_strtoull_harness_fixed_values_simplified
+output/strtoull_implementation_ideas
+output/strtoull_test_cases
+output/strtoull_test_cases_shortened
+output/test_strtoull_and_safe_strtoull
