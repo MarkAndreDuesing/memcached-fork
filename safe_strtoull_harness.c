@@ -13,7 +13,7 @@
 //which makes more sense here, as: isspace(char c) takes a char type as its input. meaning it could be either?
 //but *endptr is a char type, isnt it?
 //https://stackoverflow.com/questions/2054939/is-char-signed-or-unsigned-by-default/2054941#2054941
-//https://stackoverflow.com/questions/436513/char-signed-char-char-unsigned-char
+//https://stackoverflow.com/questions/436513/char-signed-char-char-unsigned-char 
 
 //needed implicit declarations
 extern unsigned int __VERIFIER_nondet_uint();
@@ -33,7 +33,7 @@ bool safe_strtoull(const char *str, uint64_t *out) {
     // understand why we need *out, and it cant just be uint_64 out. Because out is an adresse, even if the adresse itself is never directly used here
     char *endptr;
     unsigned long long ull = strtoull(str, &endptr, 10);
-    //the predrefined strtoull method also changes errno (without even needing it as an input? some sort of C convention?)
+    //the predrefined strtoull method also changes errno (without even needing it as an input)
     if ((errno == ERANGE) || (str == endptr)) {
         //str == endptr would be the case if the string is just whitespaces? check!!!
         //according to some stackoverflow side remark: "i.e. the input string was empty, or only contained whitespace, 
@@ -265,7 +265,7 @@ static enum test_return test_safe_strtoull(void) {
 //ending with investigating a property with the broadest possible input values
 
 // in a very expanded experiment, should i also add _meta_flag_preparse and other methods that use safe_strtoull in the harness?
-
+// -> Dont do that! waste of time and no grade improvement
 
 //uses of safe_strtoull in memcached:
 //proxy_internal.c/process_update_cmd
@@ -301,7 +301,7 @@ static enum test_return test_safe_strtoull(void) {
 
 //no-data-race:
 // ./esbmc --no-div-by-zero-check --force-malloc-success --state-hashing --add-symex-value-sets --no-align-check --k-step 2 --floatbv --unlimited-k-steps --no-vla-size-check "/home/erdnakram/Documents/Memcached Clone/memcached github git clone/memcached/safe_strtoull_harness.c" --64 --witness-output witness.graphml --no-pointer-check --no-bounds-check --data-races-check --no-assertions --k-induction --max-inductive-step 3 
-// Segmentation fault (core dumped), check again later
+// Segmentation fault (core dumped), doesnt make sense to test here
 
 
 //no-overflow.prp:
@@ -318,7 +318,7 @@ static enum test_return test_safe_strtoull(void) {
 
 //unreach-call.prp:
 // ./esbmc --no-div-by-zero-check --force-malloc-success --state-hashing --add-symex-value-sets --no-align-check --k-step 2 --floatbv --unlimited-k-steps --no-vla-size-check "/home/erdnakram/Documents/Memcached Clone/memcached github git clone/memcached/safe_strtoull_harness.c" --64 --witness-output witness.graphml --enable-unreachability-intrinsic --no-pointer-check --interval-analysis --no-bounds-check --error-label ERROR --goto-unwind --unlimited-goto-unwind --k-induction --max-inductive-step 3 
-// verification successful (up to the nondet variable limit i set)
+// verification successful (up to the nondet variable limit i set) -> because i made no assertions that could be false!!!
 
 //valid-memcleanup.prp:
 // ./esbmc --no-div-by-zero-check --force-malloc-success --state-hashing --add-symex-value-sets --no-align-check --k-step 2 --floatbv --unlimited-k-steps --no-vla-size-check "/home/erdnakram/Documents/Memcached Clone/memcached github git clone/memcached/safe_strtoull_harness.c" --64 --witness-output witness.graphml --no-pointer-check --no-bounds-check --memory-leak-check --no-assertions --incremental-bmc 
