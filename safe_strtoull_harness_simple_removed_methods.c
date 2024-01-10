@@ -30,8 +30,8 @@ bool safe_strtoull(const char *str, uint64_t *out) {
     //char *endptr = str;
     //char *endptr = strchr(str, '\0');// equivalent to:
     char *endptr = str + strlen(str);
-    //assert(*endptr=='\0');
-    //assert(endptr != str);
+    assert(*endptr=='\0');
+    assert(endptr != str);
 
     //unsigned long long ull = strtoull(str, &endptr, 10);
     unsigned long long ull = 1;
