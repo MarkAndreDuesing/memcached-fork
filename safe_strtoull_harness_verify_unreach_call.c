@@ -150,7 +150,11 @@ bool safe_strtoull(const char *str, uint64_t *out) {
         return false;
     }
 
-    if (xisspace(*endptr) || (*endptr == '\0' /*&& endptr != str*/)) {
+    //if (xisspace(*endptr) || (*endptr == '\0' /*&& endptr != str*/)) {
+    //if (isspace((unsigned char)*endptr) || (*endptr == '\0' /*&& endptr != str*/)) {
+    if (isspace(*endptr) || (*endptr == '\0' /*&& endptr != str*/)) {
+    //if (isspace((signed char)*endptr) || (*endptr == '\0' /*&& endptr != str*/)) {
+    //test these for expected outputs with given char inputs. why is xisspace used and why does ESBMC not report anything with any of these variations?
         //assert(endptr != str);
         if ((long long) ull < 0) {
             if (memchr(str, '-', endptr - str) != NULL) {
@@ -167,19 +171,31 @@ bool safe_strtoull(const char *str, uint64_t *out) {
 
 int main(){
 //Encode Precondition (Arrange):
+
+    //bool split_path = __VERIFIER_nondet_bool();
+    bool split_path = true;
+
     unsigned int sizeStr = __VERIFIER_nondet_uint();
-    if(sizeStr >= 21|| sizeStr <= 3) {abort();}
+
+    if(split_path){//split_path==true for cases without '-', where sizeStr can be >= 22 as the very low value range case isnt an issue
+    if(sizeStr >= 25|| sizeStr <= 0) {abort();}
     //go down from 25 to 21 to eliminate cases of -9223372036854775809 etc.
     //also blocks overflows, but as we tested the possibility of these already with assert(errno==0) this isnt a problem
+    } else {
+        if(sizeStr >= 21|| sizeStr <= 0) {abort();}//for cases allowing '-'
+    }
+    
     char *str = (char *)malloc(sizeof(char) * sizeStr);
     uint64_t strVal = __VERIFIER_nondet_ulonglong();
-    if(strVal >= 50 || strVal <= 3) {abort();}
+    //if(strVal >= 50 || strVal <= 3) {abort();}
 
 //Main Verification Harness:
     for (unsigned int i = 0; i < sizeStr-1; ++i){
         char temp = __VERIFIER_nondet_char();
         if(temp == '\0'){abort();}
-        //if(temp == '-'){abort();}
+        
+        if(split_path && temp == '-'){abort();}
+        
         *(str + i) = temp; 
     }
     *(str + (sizeStr-1)) = '\0';  
@@ -206,17 +222,18 @@ if (strVal!=0){
         assert(strVal==ull);
         //Building on the previous assesment that this does apply when safe is true, as opposed to when safe is false and we have expected counterexamples like str="-1"
 
-        /*
+        assert(((*(str) != '-')||(*(str+1) == '0')));
+        
         assert(errno != ERANGE && str != endptr && (xisspace(*endptr) && ((long long) ull < 0 && 
         memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0) || *endptr == '\0' && 
         ((long long) ull < 0 && memchr(str, '-', endptr - str) == NULL || (long long) ull >= 0)));
-        */
+        
     } else {
-        /*
+        
         assert((errno == ERANGE) || (str == endptr) || ((errno != ERANGE) && (str != endptr) && 
         (((!xisspace(*endptr)) && (*endptr != '\0')) || (((long long) ull < 0) && 
         (memchr(str, '-', endptr - str) != NULL) && (xisspace(*endptr) || (*endptr == '\0'))))));
-        */
+        
     }
     free(str);
     return 0;
