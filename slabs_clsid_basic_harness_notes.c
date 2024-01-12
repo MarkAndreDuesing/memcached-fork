@@ -7,21 +7,21 @@
  * memcached protocol.
  */
 
-//#include "memcached.h"
-//#include "storage.h"
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/resource.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <signal.h>
-#include <assert.h>
-#include <pthread.h>
+////#include "memcached.h"
+////#include "storage.h"
+//#include <sys/mman.h>
+//#include <sys/stat.h>
+//#include <sys/socket.h>
+//#include <sys/resource.h>
+//#include <fcntl.h>
+//#include <netinet/in.h>
+//#include <errno.h>
+//#include <stdlib.h>
+//#include <stdio.h>
+//#include <string.h>
+//#include <signal.h>
+//#include <assert.h>
+//#include <pthread.h>
 
 
 //In memcached.h the basic definition of POWER_SMALLEST, POWER_LARGEST and MAX_NUMBER_OF_SLAB_CLASSES are given:
@@ -57,8 +57,19 @@ if (settings.item_size_max > (ITEM_SIZE_MAX_UPPER_LIMIT)) {
         exit(EX_USAGE);
     }
 //there are also more if cases here that help with comprehension of settings.item_size_max. look into more later
+also: https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/doc/memcached.1#L141
+in https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/memcached.c#L5242 : 
+the execution of the -I command occurs, which changes settings.item_size_max. k/K or m/M can be included, 
+denoting kilo or mega bytes -> multiplication of result by *1024 or *1024*1024. Then the desired value is read in from a string by atoi()
+but not just any value can be read in, cause a bit after that, starting at https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/memcached.c#L5739
+safety checks are used to make sure item_size_max is within the limits of ITEM_SIZE_MAX_LOWER_LIMIT and ITEM_SIZE_MAX_UPPER_LIMIT
+the safety checks there also limit item_size_max through other variables like settings.maxbytes and settings.slab_chunk_size_max, but this probably goes beyond the scope of what we need
+one thing to potentially keep in mind for slabs_init() implementation is this:     
+if (settings.item_size_max % settings.slab_chunk_size_max != 0) {
+    fprintf(stderr, "-I (item_size_max: %d) must be evenly divisible by slab_chunk_max (bytes: %d)\n", 
+    settings.item_size_max, settings.slab_chunk_size_max); }
 */
-//as safety checks in main() from mecached.c
+//as safety checks in main() from memcached.c
 //the name max-item-size instead of item_size_max also comes up a few times, watch out for that. Relevant for us might be, this line from memcached/doc/memcached.1:
 /*
 .B \-I, --max-item-size=<size>
@@ -67,6 +78,8 @@ value for this parameter is 1m, minimum is 1k, max is 1G (1024 * 1024 * 1024).
 Adjusting this value changes the item size limit.
 */
 //oddly enough it seems like the slabs maximum size is 1mb but the item maximum size is 1gb, so how does that work out? investigate further
+
+//restart_set_kv(ctx, "item_size_max", "%d", settings.item_size_max); doesnt seem to change the values, just read them in/save them
 
 typedef struct {
     unsigned int size;      /* sizes of items */
@@ -107,6 +120,16 @@ static int power_largest;
 //https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/memcached.c#L1976 //APPEND_STAT("item_size_max", "%d", settings.item_size_max);
 //https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/memcached.c#L4523 //restart_set_kv(ctx, "item_size_max", "%d", settings.item_size_max);
 //ask thomas what those last 2 methods migt be referring to
+
+//I think through:
+//https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/storage.c#L1170 : 
+//(in storage_init_config()) : s->ext_wbuf_size = 1024 * 1024 * 4;
+//and 
+//https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/storage.c#L1401 : 
+//"-I (item_size_max: 'settings.item_size_max') cannot be larger than ext_wbuf_size: 'ext_cf->wbuf_size'\n",
+//we can also define a limit: settings.item_size_max <= 1024 * 1024 * 4
+//I might have that wrong though, mixing up ext_wbuf_size and wbuf_size, only research more if required
+
 //these are also set here in setting_init():
 //settings.slab_page_size = 1024 * 1024; /* chunks are split from 1MB pages. */
 //settings.slab_chunk_size_max = settings.slab_page_size / 2;
@@ -149,6 +172,8 @@ unsigned int slabs_clsid(const size_t size) {
     //remember not to mix up ++i and i++ !
     //if res compares to power_largest an then increments, isnt it possible that slabclass[res+1].size doesnt exist? -> assertion 
     //(but i think this case is caught by return power_largest; preventing another while-loop check)
+
+    //now that i think about it, why do we start at size>slabclass[1].size and not size>slabclass[0].size, look into again!!!
         if (res++ == power_largest)     /* won't fit in the biggest slab */
             return power_largest;
     return res;
@@ -160,6 +185,15 @@ unsigned int slabs_clsid(const size_t size) {
 // if slabclass[power_largest].size < size <= settings.item_size_max then return power_largest; alsways occurs? -> assertion!
 
 //Generally make a few assertions comparing the 3 variables with symbolic ranges and expected results
+
+//from the description of item_size_ok() in items.c#l380 we can infer that:
+//If 'return slabs_clsid(...) != 0' , then:
+/**
+ * Returns true if an item will fit in the cache (its size does not exceed
+ * the maximum for a cache entry.)
+ */
+//thereby, if size <= settings.item_size_max: an item will fit in the cache (its size does not exceed the maximum for a cache entry.)
+//https://github.com/memcached/memcached/blob/master/items.c#L380C13-L380C13
 
 
 //might also have to understand, recreate and find all places where slabclass[*].size is set, like in:
@@ -177,7 +211,7 @@ slabclass[power_largest].size = settings.slab_chunk_size_max;
 slabclass[power_largest].perslab = settings.slab_page_size / settings.slab_chunk_size_max;
 */
 //slabs_init is also only called once with given values, look into what those are exactly
-// also look into the valse these are set too here: size; settings.slab_page_size; settings.slab_chunk_size_max;
+// also look into the values these are set too here: size; settings.slab_page_size; settings.slab_chunk_size_max;
 //int slab_chunk_size_max;  /* Upper end for chunks within slab pages. */
 //int slab_page_size;     /* Slab's page units. */
 
