@@ -4,9 +4,9 @@
 
 
 #define POWER_SMALLEST 1
-#define POWER_LARGEST  256 /* actual cap is 255 */
+//#define POWER_LARGEST  256 /* actual cap is 255 */
 //#define SLAB_GLOBAL_PAGE_POOL 0 /* magic slab class for storing pages for reassignment */
-#define CHUNK_ALIGN_BYTES 8
+//#define CHUNK_ALIGN_BYTES 8
 /* slab class max is a 6-bit number, -1. */
 #define MAX_NUMBER_OF_SLAB_CLASSES (63 + 1)
 
@@ -37,6 +37,8 @@ unsigned int slabs_clsid(const size_t size) {
         return 0;
     while (size > slabclass[res].size)
         if (res++ == power_largest)
+    //assuming power_largest=63 and res incremented to the point of res=62:
+    //res:62==power_largest:63 false-> res incremented to:63 -> 63==63 true -> res incremented to:64 (but irrelevant as...) -> return power_largest=63
             return power_largest;
     return res;
 }
