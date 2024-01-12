@@ -30,7 +30,7 @@
 #define POWER_SMALLEST 1
 #define POWER_LARGEST  256 /* actual cap is 255 */
 //#define SLAB_GLOBAL_PAGE_POOL 0 /* magic slab class for storing pages for reassignment */
-//#define CHUNK_ALIGN_BYTES 8
+#define CHUNK_ALIGN_BYTES 8
 /* slab class max is a 6-bit number, -1. */
 #define MAX_NUMBER_OF_SLAB_CLASSES (63 + 1)
 //(included the other definitions in the block too as they might be useful for comprehension)
@@ -189,6 +189,12 @@ slabclass[power_largest].perslab = settings.slab_page_size / settings.slab_chunk
  * Determines the chunk sizes and initializes the slab class descriptors
  * accordingly.
  */
+/** Init the subsystem. 1st argument is the limit on no. of bytes to allocate,
+    0 if no limit. 2nd argument is the growth factor; each slab will use a chunk
+    size equal to the previous slab's chunk size times this factor.
+    3rd argument specifies if the slab allocator should allocate all memory
+    up front (if true), or allocate memory in chunks as it is needed (if false)
+*/
 void slabs_init(const size_t limit, const double factor, const bool prealloc, const uint32_t *slab_sizes, void *mem_base_external, bool reuse_mem) {
     int i = POWER_SMALLEST - 1;
     unsigned int size = sizeof(item) + settings.chunk_size;
@@ -302,8 +308,8 @@ void slabs_init(const size_t limit, const double factor, const bool prealloc, co
 //understand method and its uses (what is variable size and where is the method used)!!! -> 0.5 day
 //understand and explain methods used in the analysed method (POWER_SMALLEST, settings.item_size_max, slabclass[res].size, power_largest) -> 0.75 day
 //implement simple harness and explain it -> 0.75 day
+//going to have to model slabs_init as well -> 1 day -> FINISHED BY SATURDAY EVENING AT THE LATEST!!!
 //make increasingly complex harness, test for relevant properties, investigate counterexamples and assertions -> 3 days
-//going to have to model slabs_init as well -> 1 day
 
 //4 days for related work, discussion and conclusion and improved tool description first (at least finish for the most part)
 //conclusion is good buildup for presentation content?
@@ -316,3 +322,14 @@ void slabs_init(const size_t limit, const double factor, const bool prealloc, co
 //include mindmap in presentation somehow?
 
 //also rewatch vods and take notes and scientific writing!!!
+
+//discussion on further work that could be done: initialise and verify more of slabclass by setting the other fields in the struct. this reuires the other methods in slabs.c, which would also have to be analysed for correctness
+//slab_list in slabs_prefill_global, slabs_rebalance_finish, grow_slab_list, do_slabs_newslab and slabs_fixup
+//perslabs in slabs_init
+//slots in slabs_fixup, slabs_rebalance_alloc, do_slabs_free, do_slabs_free_chunked and do_slabs_alloc
+//sl_curr in slabs_fixup, slabs_rebalance_alloc, do_slabs_free, do_slabs_free_chunked and do_slabs_alloc
+//list_size in grow_slab_list
+//slabs in get_page_from_global_pool, slabs_rebalance_finish and do_slabs_newslab
+
+//much like perslabs, size is slabclass[i].size (or the pointer equivalent p->size) is only set in slabs_ini and never changed!!!
+//no other .c or .h file where slabsclass is used/changed either
