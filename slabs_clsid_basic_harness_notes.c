@@ -65,9 +65,16 @@ but not just any value can be read in, cause a bit after that, starting at https
 safety checks are used to make sure item_size_max is within the limits of ITEM_SIZE_MAX_LOWER_LIMIT and ITEM_SIZE_MAX_UPPER_LIMIT
 the safety checks there also limit item_size_max through other variables like settings.maxbytes and settings.slab_chunk_size_max, but this probably goes beyond the scope of what we need
 one thing to potentially keep in mind for slabs_init() implementation is this:     
+if (settings.item_size_max > 1024 * 1024) {
+    if (!slab_chunk_size_changed) {
+        // Ideal new default is 16k, but needs stitching.
+        settings.slab_chunk_size_max = settings.slab_page_size / 2; } }
+if (settings.slab_chunk_size_max > settings.item_size_max) {
+    fprintf(stderr, "slab_chunk_max (bytes: %d) cannot be larger than -I (item_size_max %d)\n", settings.slab_chunk_size_max, settings.item_size_max); }
 if (settings.item_size_max % settings.slab_chunk_size_max != 0) {
-    fprintf(stderr, "-I (item_size_max: %d) must be evenly divisible by slab_chunk_max (bytes: %d)\n", 
-    settings.item_size_max, settings.slab_chunk_size_max); }
+    fprintf(stderr, "-I (item_size_max: %d) must be evenly divisible by slab_chunk_max (bytes: %d)\n", settings.item_size_max, settings.slab_chunk_size_max); }
+if (settings.slab_page_size % settings.slab_chunk_size_max != 0) {
+    fprintf(stderr, "slab_chunk_max (bytes: %d) must divide evenly into %d (slab_page_size)\n", settings.slab_chunk_size_max, settings.slab_page_size); }
 */
 //as safety checks in main() from memcached.c
 //the name max-item-size instead of item_size_max also comes up a few times, watch out for that. Relevant for us might be, this line from memcached/doc/memcached.1:
@@ -78,6 +85,38 @@ value for this parameter is 1m, minimum is 1k, max is 1G (1024 * 1024 * 1024).
 Adjusting this value changes the item size limit.
 */
 //oddly enough it seems like the slabs maximum size is 1mb but the item maximum size is 1gb, so how does that work out? investigate further
+//I guess were increasing the slab page size, which allows us to have bigger item sizes too (up to 1gb as defined here and in ITEM_SIZE_MAX_UPPER_LIMIT)!!! important difference as item size never exceeds slab size that way.
+//Relevant to that, keep in mind the definition at the beginning of slabs.c:
+/*
+ * Slabs memory allocation, based on powers-of-N. Slabs are up to 1MB in size
+ * and are divided into chunks. The chunk sizes start off at the size of the
+ * "item" structure plus space for a small key and value. They increase by
+ * a multiplier factor from there, up to half the maximum slab size. The last
+ * slab size is always 1MB, since that's the maximum item size allowed by the
+ * memcached protocol.
+ */
+//which is also why slabs_init starts at a size of: size = sizeof(item) + settings.chunk_size;
+//and i think maxes out at size = settings.slab_chunk_size_max 
+//The defintion here implies that maximum slab size/2 is equal to the maximum chunk size, and sure enough, a definition in setting_init() gives us:
+//settings.slab_chunk_size_max = settings.slab_page_size / 2;
+
+//so in total i think this is how it works:
+//slab page sizes (slab_page_size) are by default 1mb, but can also be set between 1kb and 1gb.
+//as defined in memcached.c: settings.slab_page_size = 1024 * 1024; /* chunks are split from 1MB pages. */
+//this then sets the maximum item size (item_size_max) to effectively be default 1mb, but between 1kb and 1gb as well (as shown by ITEM_SIZE_MAX_LOWER_LIMIT and ITEM_SIZE_MAX_UPPER_LIMIT)
+//the slabs (a.k.a. slab_page_size) are divided into chunks, starting at the size of the item structure+space for key and value (e.g. size = sizeof(item) + settings.chunk_size ?)
+//these chunks then progressvely grow, by a factor, up to the biggest chunk size: slab_chunk_size_max = slab_page_size / 2
+//slabs_clsid does: Figures out which slab class (chunk size) is required to store an item of a given size.
+//so starting at the smallest and going up to slab_page_size / 2 (is that then equal to power_largest?)
+//chunk_size is the minimum space allocated for key+value+flags, as seen in the line 
+//"chunk sizes start off at the size of the "item" structure plus space for a small key and value"
+//-> this is done in slabs_init, where the starting size is defined as size = sizeof(item) + settings.chunk_size; -> size of "item" plus space for key+value+flags
+//this is however not to be confused with chunk_size used when referring to the amount of space each chunk uses. I think those are 2 different concepts?
+//...
+//still have to understand what "The last slab size is always 1MB, since that's the maximum item size allowed by the memcached protocol." means
+//but it implies that theres always a big enough slab (a.k.a. slab_page_size) to fit an item, because of the limit on item size?
+//slabs_clsid also catches: size > settings.item_size_max -> return 0, so an item really cant be bigger that item_size_max (and by extent bigger than slab_page_size?)
+//Another potential problem is that slab_page_size is never changed at any point in memcached, only set to 1024 * 1024. so what happens when item size is set to the intended 1gb, the values become out of synch?!
 
 //restart_set_kv(ctx, "item_size_max", "%d", settings.item_size_max); doesnt seem to change the values, just read them in/save them
 
@@ -113,13 +152,9 @@ static int power_largest;
 //We only need the one field, which is set in https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/memcached.c#L258 by settings_init() as:
 //settings.item_size_max = 1024 * 1024; /* The famous 1MB upper limit. */
 //if 1024*1024 refers to 1MB, then 1024 refers to 1kB and 1 refers to 1Byte I would guess
-//I think this one could still be changed at various locations though, investigate further:
-//https://github.com/search?q=repo%3Amemcached%2Fmemcached%20settings.item_size_max&type=code
+//But this value can be changed at the following location (followed by safety checks for size bounds etc.):
 //https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/memcached.c#L5242 //settings.item_size_max = size_max;
 //https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/memcached.c#L5244 //settings.item_size_max = atoi(buf);
-//https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/memcached.c#L1976 //APPEND_STAT("item_size_max", "%d", settings.item_size_max);
-//https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/memcached.c#L4523 //restart_set_kv(ctx, "item_size_max", "%d", settings.item_size_max);
-//ask thomas what those last 2 methods migt be referring to
 
 //I think through:
 //https://github.com/memcached/memcached/blob/490a4aa483e0073735d636c57ed5a7056e06ada3/storage.c#L1170 : 
@@ -129,6 +164,7 @@ static int power_largest;
 //"-I (item_size_max: 'settings.item_size_max') cannot be larger than ext_wbuf_size: 'ext_cf->wbuf_size'\n",
 //we can also define a limit: settings.item_size_max <= 1024 * 1024 * 4
 //I might have that wrong though, mixing up ext_wbuf_size and wbuf_size, only research more if required
+//almost definitely beyond scope!!!
 
 //these are also set here in setting_init():
 //settings.slab_page_size = 1024 * 1024; /* chunks are split from 1MB pages. */
@@ -173,7 +209,7 @@ unsigned int slabs_clsid(const size_t size) {
     //if res compares to power_largest an then increments, isnt it possible that slabclass[res+1].size doesnt exist? -> assertion 
     //(but i think this case is caught by return power_largest; preventing another while-loop check)
 
-    //now that i think about it, why do we start at size>slabclass[1].size and not size>slabclass[0].size, look into again!!!
+    //now that i think about it, why do we start at res>=1 -> size>slabclass[1].size and not size>slabclass[0].size, look into again!!!
         if (res++ == power_largest)     /* won't fit in the biggest slab */
             return power_largest;
     return res;
@@ -217,6 +253,15 @@ slabclass[power_largest].perslab = settings.slab_page_size / settings.slab_chunk
 
 //Rather getting too lost in all the size definition i should just get started with the harness and simple modelling. can do the research later too!!!
 //for now just write down basic stuff, refine and understand better later
+
+//        \\also set in settings_init() in memcached.c:
+//        settings.maxbytes = 64 * 1024 * 1024; /* default is 64MB */
+//    
+//    \\From struct settings in memcached.h:
+//    (also, maybe relevant:)
+//    unsigned int ext_page_size; /* size in megabytes of storage pages. */
+//    unsigned int ext_item_size; /* minimum size of items to store externally */
+//    unsigned int ext_wbuf_size; /* read only note for the engine */
 
 
 /**
