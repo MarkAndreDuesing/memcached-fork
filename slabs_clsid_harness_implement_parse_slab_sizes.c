@@ -3,6 +3,7 @@
 #include <string.h>//for memset
 #include <stdint.h>//for uintX_t types
 #include <assert.h>
+#include <stdbool.h>//for boolean values
 
 
 #define POWER_SMALLEST 1
@@ -16,6 +17,7 @@
 extern unsigned int __VERIFIER_nondet_uint();
 extern int __VERIFIER_nondet_int();
 extern size_t __VERIFIER_nondet_size_t();
+extern _Bool __VERIFIER_nondet_bool();
 
 struct settings{
     double factor;            /*chunk size growth factor*/
@@ -68,19 +70,19 @@ void _parse_slab_sizes(uint32_t *slab_sizes) {
 
     for (i = 0; i < MAX_NUMBER_OF_SLAB_CLASSES-2; i++){
 
-        //size = (uint32_t) __VERIFIER_nondet_uint();
+        size = (uint32_t) __VERIFIER_nondet_uint();
         
         //fixed inputs tests:
         //size = last_size+10000;
-        size = last_size+48;
+        //size = last_size+48;
 
         if(size < settings.chunk_size ||
         size > settings.slab_chunk_size_max ||
         last_size >= size ||
         size <= last_size + CHUNK_ALIGN_BYTES){ //false cases
-            //abort();
-            for fixed inputs:
-            printf("error"); break;
+            abort();
+            //for fixed inputs:
+            //printf("error"); break;
         } 
         slab_sizes[i] = size; //dont need to do i++, as we already increment at the end of every loop, and moved the upper limit safety check to the front of the loop
         last_size = size;
@@ -90,18 +92,18 @@ void _parse_slab_sizes(uint32_t *slab_sizes) {
 }
 
 
-void slabs_init(const double factor, const uint32_t *slab_sizes) {
+void slabs_init(const double factor, const uint32_t *slab_sizes_input) {
     int i = POWER_SMALLEST - 1;
-    unsigned int size = sizeof(item) + settings.chunk_size;//adapt my modelling of settings to include chunk_size=48;
-
+    unsigned int size = sizeof(item) + settings.chunk_size;
+    //unsigned int lastsize = 0;
     memset(slabclass, 0, sizeof(slabclass));//-> all elements of the slabclass array have their size field initialized to zero.
 
     while (++i < MAX_NUMBER_OF_SLAB_CLASSES-1) {
-        if (slab_sizes != NULL) {
-            if (slab_sizes[i-1] == 0){
+        if (slab_sizes_input != NULL) {
+            if (slab_sizes_input[i-1] == 0){
                 break;
             }
-            size = slab_sizes[i-1];
+            size = slab_sizes_input[i-1];
         } else if (size >= settings.slab_chunk_size_max / factor) {
         //if size >= the second to last chunk size/slab class? what about the slab class where an item take up a while slab page. re-read my notes again
             break;
@@ -112,9 +114,10 @@ void slabs_init(const double factor, const uint32_t *slab_sizes) {
         }
 
         slabclass[i].size = size;
-
-        if (slab_sizes == NULL){
+        if (slab_sizes_input == NULL){
+            //lastsize = size;
             size *= factor;
+            //if(size==lastsize){abort();}//might have to add this catch if assertion tests still have the problem that factor multiplication is ignored
         }
     }//due to i incrementing before setting slabclass[i], we start initialising values at slabclass[1].size = size; , not slabclass[0].size = size;
     //so because of this and memset(slabclass, 0, sizeof(slabclass)); , slabclass[0].size is set =0 (not considering the slab_sizes != NULl case)
@@ -156,7 +159,16 @@ unsigned int slabs_clsid(const size_t size) {
             return power_largest;
     return res;
 }//if size is so small that its less than slabclass[1].size, we immediately return that it fits in slab class 1 without going into the while loop
-
+//assertions/investigations:
+//0 could be returned in unwanted circumstances, depending on factors such as changing \verb|item_size_max|
+//remove this safety case to see if it's actually required 
+//(have to at some point research/understand the correlation between max chunk size and max item size. where items are stored when bigger than any slab class)
+//set safety case as an assumption/precondition in the harness instead, to make the evaluation of the remaining method easier.
+//assert if theres any way for power_largest to be =0 -> res would iterate repeatedly into an array bound error
+//if size > slabclass[power_largest].size -> res = power_largest, but also if slabclass[power_largest].size > size > slabclass[power_largest-1].size -> res = power_largest.
+//show this with assertions, and then look at slabs_clsid uses in memcached to see if this is intentional or an error
+//Assertions about relation between size, settings.item_size_max and slabclass[res].size. both for reachability of branches in the method and 
+//to verify that the specifications are maintained, that an item cannot be bigger than item_size_max or slab_page_size and a chunk size cannot be greater than slab_page_size/2.
 
 //analyse: slabclass[res].size overflow due to factor
 int main(){
@@ -177,15 +189,34 @@ int main(){
     
 	//slabclass[MAX_NUMBER_OF_SLAB_CLASSES-1].size = 0;//maybe set this later
 
-    //put nondet bool 'use_slab_sizes' around this later
+    
+    bool use_slab_sizes = __VERIFIER_nondet_bool();
+/*
     uint32_t slab_sizes[MAX_NUMBER_OF_SLAB_CLASSES];
-    _parse_slab_sizes(slab_sizes);
-    //and then do 'use_slab_sizes ? slab_sizes : NULL' in slabs_init
+
+    if(use_slab_sizes){
+        //put nondet bool 'use_slab_sizes' around this later
+        _parse_slab_sizes(slab_sizes);
+        //and then do 'use_slab_sizes ? slab_sizes : NULL' in slabs_init
+    }
 
 //Main Verification Harness:
-    slabs_init(settings.factor,slab_sizes);
+    //slabs_init(settings.factor,slab_sizes);
+    //slabs_init(settings.factor,NULL);
     
-    //slabs_init(settings.factor,use_slab_sizes ? slab_sizes : NULL);
+    slabs_init(settings.factor,use_slab_sizes ? slab_sizes : NULL);
+    */
+
+    //alternatively, maybe this will fix the odd unreach-call false-positives:
+    //It doesnt, but it does prevent slab_sizes from being created in all cases 
+    if(use_slab_sizes){
+        uint32_t slab_sizes[MAX_NUMBER_OF_SLAB_CLASSES];
+        _parse_slab_sizes(slab_sizes);
+        slabs_init(settings.factor,slab_sizes);
+    } else {
+        slabs_init(settings.factor,NULL);
+    }
+    
     
     //power_largest still goes from 1-63 (as can be seen in slabs_init, and limited by slabclass[] index range)
     //as all our values are fixed we can actually know exactly what our slabclasses are:
@@ -199,29 +230,32 @@ int main(){
 //Encode Postcondition (Assert):
     //...
 
+/*
     printf("[");
     unsigned int j;
     for(j = 0; j < MAX_NUMBER_OF_SLAB_CLASSES-1; j++) {
-        printf("'index;%d, value:%d', ",j,slab_sizes[j]);
+        printf("'1index;%d, value:%d', ",j,slab_sizes[j]);
     }
-    printf("'index;%d, value:%d']\n, ",j,slab_sizes[j]);
+    printf("'1index;%d, value:%d']\n, ",j,slab_sizes[j]);
 
 
     printf("[");
     unsigned int k;
     for(k = 0; k < MAX_NUMBER_OF_SLAB_CLASSES-1; k++) {
-        printf("'index;%d, value:%d', ",k,slabclass[k].size);
+        printf("'2index;%d, value:%d', ",k,slabclass[k].size);
 	}
-    printf("'index;%d, value:%d']\n, ",k,slabclass[k].size);
+    printf("'2index;%d, value:%d']\n, ",k,slabclass[k].size);
 
 printf("%d\n",settings.slab_chunk_size_max);
-
+*/
 
 //assert(slab_sizes[MAX_NUMBER_OF_SLAB_CLASSES-3] != settings.slab_chunk_size_max);
 //assert(slab_sizes[MAX_NUMBER_OF_SLAB_CLASSES-3] == settings.slab_chunk_size_max);
 //assert(slab_sizes[MAX_NUMBER_OF_SLAB_CLASSES-2] != 0);
 //-> found counterexample for all of these -> correct behaviour
 //assert(slab_sizes[MAX_NUMBER_OF_SLAB_CLASSES-2] == 0);//should always be true, and it is according to esbmc -> correct behaviour
+//assert(slabclass[39].size == settings.slab_chunk_size_max);//-> doesnt work as it should for some reason
+//assert(slabclass[63].size != settings.slab_chunk_size_max);
 
 
 
