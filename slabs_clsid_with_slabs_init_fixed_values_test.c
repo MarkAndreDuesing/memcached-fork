@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>//for memset
 #include <stdint.h>//for uintX_t types
+#include <assert.h>
 
 
 #define POWER_SMALLEST 1
@@ -63,10 +64,12 @@ typedef struct _stritem {
 void slabs_init(const double factor, const uint32_t *slab_sizes) {
     int i = POWER_SMALLEST - 1;
     unsigned int size = sizeof(item) + settings.chunk_size;//adapt my modelling of settings to include chunk_size=48;
-
+    //unsigned int lastsize = 0;
     memset(slabclass, 0, sizeof(slabclass));
 
     while (++i < MAX_NUMBER_OF_SLAB_CLASSES-1) {
+        //if(size*factor<=size){abort();}// for some reason this doesnt prevent the erroneous false_reach. SO i guess it seems like size is just reset at the end of every loop
+        //lastsize=size;
         //if (slab_sizes != NULL) {
         //    if (slab_sizes[i-1] == 0){}
         //        break;
@@ -87,6 +90,9 @@ void slabs_init(const double factor, const uint32_t *slab_sizes) {
         if (slab_sizes == NULL){
             size *= factor;
         }
+        //if(!(size > 96)){abort();} //if this is included, then our assertion that should always be correct, is. Still dont understand why it would ever be false though
+        //if(size==lastsize){abort();}//also works
+
     }//due to i incrementing before setting slabclass[i], we start initialising values at slabclass[1].size = size; , not slabclass[0].size = size;
     //so because of this and memset(slabclass, 0, sizeof(slabclass)); , slabclass[0].size is set =0 (not considering the slab_sizes != NULl case)
 
@@ -136,7 +142,8 @@ int main(){
     //size_t input_item_size = __VERIFIER_nondet_size_t();//(just do broad nondet or fixed value for now)
     size_t input_item_size = 2028;
     
-    settings.factor = 1.25;//set to default value; 
+    settings.factor = 1.25;//set to default value; //1 //1.01 //1.1 //5 //1000
+    //another thing to consider is if factor is small enough it will never get past the CHUNK_ALIGN_BYTES rounding and be [0,96,96,...,96,524288], which could lead to issues
     settings.item_size_max = 1024 * 1024;//set to default value; 
     settings.chunk_size = 48;//set to default value; 
     settings.slab_page_size = 1024 * 1024; /* chunks are split from 1MB pages. */
@@ -158,14 +165,17 @@ int main(){
 
     printf("[");
     unsigned int i;
-    for(i = 0; i < MAX_NUMBER_OF_SLAB_CLASSES-1; i++) {//0-63 range
-		printf("%d, ",slabclass[i].size);
+    for(i = 0; i < MAX_NUMBER_OF_SLAB_CLASSES-1; i++) {
+		//printf("%d, ",slabclass[i].size);
+        printf("'index;%d, value:%d', ",i,slabclass[i].size);
 	}
-    printf("%d]\n",slabclass[i].size);
+    //printf("%d]\n",slabclass[i].size);
+    printf("'index;%d, value:%d']\n, ",i,slabclass[i].size);
     //slabclass[0].size = 48+48
     printf("%d\n",settings.slab_chunk_size_max);
 
 //Encode Postcondition (Assert):
     //...
+    assert(slabclass[39].size == settings.slab_chunk_size_max);//should always be true, but ESBMC seems to think that factor=1 and size=96 is always set
     return 1;
 }
