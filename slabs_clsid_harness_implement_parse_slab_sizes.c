@@ -160,15 +160,16 @@ unsigned int slabs_clsid(const size_t size) {
     return res;
 }//if size is so small that its less than slabclass[1].size, we immediately return that it fits in slab class 1 without going into the while loop
 //assertions/investigations:
-//0 could be returned in unwanted circumstances, depending on factors such as changing \verb|item_size_max|
-//remove this safety case to see if it's actually required 
-//(have to at some point research/understand the correlation between max chunk size and max item size. where items are stored when bigger than any slab class)
-//set safety case as an assumption/precondition in the harness instead, to make the evaluation of the remaining method easier.
-//assert if theres any way for power_largest to be =0 -> res would iterate repeatedly into an array bound error
-//if size > slabclass[power_largest].size -> res = power_largest, but also if slabclass[power_largest].size > size > slabclass[power_largest-1].size -> res = power_largest.
+//1) 0 could be returned in unwanted circumstances, depending on factors such as changing \verb|item_size_max|
+//2) remove the safety case to see if it's actually required 
+//3) set safety case as an assumption/precondition in the harness instead, to make the evaluation of the remaining method easier.
+//4) assert if theres any way for power_largest to be =0 -> res would iterate repeatedly into an array bound error
+//5) if size > slabclass[power_largest].size -> res = power_largest, but also if slabclass[power_largest].size > size > slabclass[power_largest-1].size -> res = power_largest.
 //show this with assertions, and then look at slabs_clsid uses in memcached to see if this is intentional or an error
-//Assertions about relation between size, settings.item_size_max and slabclass[res].size. both for reachability of branches in the method and 
+//6) the fact that res=0 is set for both size=0 and size > settings.item_size_max could also lead to some interpretation errors that should be chekced in memcached
+//7) Assertions about relation between size, settings.item_size_max and slabclass[res].size. both for reachability of branches in the method and 
 //to verify that the specifications are maintained, that an item cannot be bigger than item_size_max or slab_page_size and a chunk size cannot be greater than slab_page_size/2.
+//(have to at some point research/understand the correlation between max chunk size and max item size. where items are stored when bigger than any slab class)
 
 //analyse: slabclass[res].size overflow due to factor
 int main(){
