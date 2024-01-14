@@ -184,6 +184,7 @@ int main(){
     settings.item_size_max = __VERIFIER_nondet_int();
     //settings.chunk_size = 48;//set to default value; 
     settings.chunk_size = __VERIFIER_nondet_int();
+    if(settings.chunk_size <= 0){abort();}
     //settings.slab_page_size = 1024 * 1024; /* chunks are split from 1MB pages. */
     settings.slab_page_size = __VERIFIER_nondet_int();
     //settings.slab_chunk_size_max = settings.slab_page_size / 2;
