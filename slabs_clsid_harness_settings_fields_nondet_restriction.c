@@ -186,9 +186,9 @@ int main(){
     size_t input_item_size = __VERIFIER_nondet_size_t();//(just do broad nondet or fixed value for now)
     settings.maxbytes = 64 * 1024 * 1024; /* default is 64MB */
 
-    //settings.factor = 1.25;//set to default value; 
-    settings.factor = __VERIFIER_nondet_double();
-    if(settings.factor <= 1.0 || settings.factor > 10000.0){abort();}//try 5.0 later
+    settings.factor = 1.25;//set to default value; 
+    //settings.factor = __VERIFIER_nondet_double();
+    //if(settings.factor <= 1.0 || settings.factor > 10000.0){abort();}//try 5.0 later
 
     //settings.item_size_max = 1024 * 1024;//set to default value; 
     settings.item_size_max = __VERIFIER_nondet_int();
