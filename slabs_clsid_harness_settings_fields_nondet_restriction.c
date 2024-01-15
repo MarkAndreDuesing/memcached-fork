@@ -219,6 +219,7 @@ int main(){
 //potential case SLAB_CHUNK_MAX:
     if(slab_chunk_max_opt_used){
         settings.slab_chunk_size_max = __VERIFIER_nondet_int();
+        if(settings.slab_chunk_size_max < settings.chunk_size){abort();}//lower bound
         bool slab_chunk_size_changed = true;
     }
 
