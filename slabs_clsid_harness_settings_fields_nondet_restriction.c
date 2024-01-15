@@ -188,7 +188,7 @@ int main(){
 
     //settings.factor = 1.25;//set to default value; 
     settings.factor = __VERIFIER_nondet_double();
-    if(settings.factor <= 1.0 /*|| settings.factor > 10000.0*/){abort();}//10000.0 again later 
+    if(settings.factor <= 1.0 /*|| settings.factor > 5.0*/){abort();}//10000.0 again later 
 
     //settings.item_size_max = 1024 * 1024;//set to default value; 
     settings.item_size_max = __VERIFIER_nondet_int();
@@ -206,7 +206,8 @@ int main(){
     //settings.slab_page_size = __VERIFIER_nondet_int();
 
     bool slab_chunk_max_opt_used = __VERIFIER_nondet_bool();
-    bool no_modern_opt_used = __VERIFIER_nondet_bool();
+    bool no_chunked_items_opt_used = __VERIFIER_nondet_bool();
+    //bool no_modern_opt_used = __VERIFIER_nondet_bool();
     bool slab_chunk_size_changed = false;
 
     settings.slab_chunk_size_max = settings.slab_page_size / 2;
@@ -217,10 +218,16 @@ int main(){
         bool slab_chunk_size_changed = true;
     }
 
-//potential case NO_MODERN:
-    if (!slab_chunk_size_changed) {
+//potential case NO_CHUNKED_ITEMS:
+    if (no_chunked_items_opt_used) {
         settings.slab_chunk_size_max = settings.slab_page_size;
-    }
+    }//other order of NO_CHUNKED_ITEMS followed by SLAB_CHUNK_MAX
+    //doesnt need to be considered for our purposes
+
+//potential case NO_MODERN:
+//    if (no_modern_opt_used && !slab_chunk_size_changed) {
+//        settings.slab_chunk_size_max = settings.slab_page_size;
+//    }//redundant
 
 //safety checks:
     if (settings.item_size_max > 1024 * 1024 && !slab_chunk_size_changed) {
