@@ -188,7 +188,7 @@ int main(){
 
     //settings.factor = 1.25;//set to default value; 
     settings.factor = __VERIFIER_nondet_double();
-    if(settings.factor <= 1.0 || settings.factor > 10000.0){abort();}//10000.0 again later
+    if(settings.factor <= 1.0 /*|| settings.factor > 10000.0*/){abort();}//10000.0 again later 
 
     //settings.item_size_max = 1024 * 1024;//set to default value; 
     settings.item_size_max = __VERIFIER_nondet_int();
