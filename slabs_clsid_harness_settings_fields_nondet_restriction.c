@@ -186,7 +186,11 @@ int main(){
     size_t input_item_size = __VERIFIER_nondet_size_t();//(just do broad nondet or fixed value for now)
     settings.maxbytes = 64 * 1024 * 1024; /* default is 64MB */
 
-    settings.factor = 1.25;//set to default value; 
+    int factor_convert = __VERIFIER_nondet_int();
+    if(factor_convert <= 100 || factor_convert > 1000000){abort();}//-> between 1 and 10000
+    //int factor_convert = 125;
+    settings.factor = (double)factor_convert/100.0;//-> converted double with 2 values after decimal point
+    //settings.factor = 1.25;//set to default value; 
     //settings.factor = __VERIFIER_nondet_double();
     //if(settings.factor <= 1.0 || settings.factor > 10000.0){abort();}//try 5.0 later
 
