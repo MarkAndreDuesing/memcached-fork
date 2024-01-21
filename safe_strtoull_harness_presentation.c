@@ -21,15 +21,15 @@ unsigned long long int strtoull(const char *ptr, char **end, int base){
     bool negative_sign = false;
     bool ull_overflow = false;
     bool values_read = false; 
-    //so **end still shows to the start of the string, even though we iterated over ptr repeatedly,
-    //for cases like "\n\n\n+" or "--"
+    //so **end still shows to the start of the string, even though we 
+    //iterated over ptr repeatedly, for cases like "\n\n\n+" or "--" 
     //But cases like "0000" should still point to the end of the string
-    bool lead_space_break = false; //set to true as soon as a non-whitespace character is read
-
+    bool lead_space_break = false; 
+    //set to true as soon as a non-whitespace character is read
 	while (*ptr) {// false when *ptr== '\0'
 		int digit;
-        if (((*ptr == ' ') || ((*ptr - 9) < 5)) && !lead_space_break){ //cases for char 9-13 and 32
-            digit = 0;
+        if (((*ptr == ' ') || ((*ptr - 9) < 5)) && !lead_space_break){ 
+            digit = 0;//cases for char 9-13 and 32
         } else if ((*ptr == '+') && !lead_space_break){
             digit = 0;
             lead_space_break = true;
@@ -46,11 +46,7 @@ unsigned long long int strtoull(const char *ptr, char **end, int base){
         values_read = true;
         } else {
 			break;
-            //important to break off while loop here, 
-            //so we dont increase ret by another *=10 when we have a char like 'A'
-            //and so my ptr is pointing to 'A'
         }
-
         //Checking overflows and implementing errno:
         //ULLONG_MAX = 18446744073709551615
         if (ret<ULLONG_MAX/10) {
@@ -68,18 +64,19 @@ unsigned long long int strtoull(const char *ptr, char **end, int base){
             ret = ULLONG_MAX;
             ull_overflow = true;
         }
-		
 		ptr++;
 	}
-
     if(negative_sign){
         if(ull_overflow){
-            ret=ULLONG_MAX; //account for cases like  "-18446744073709551616" and beyond where the result should be ull value = 18446744073709551615
+            ret=ULLONG_MAX; 
+    //account for cases like "-18446744073709551616" and beyond where 
+    //the result should be ull value = 18446744073709551615
         } else {
-            ret *= -1;      //account for cases up to "-18446744073709551615"            where the result should be ull value = 1
+            ret *= -1;      
+    //account for cases up to "-18446744073709551615"
+    //where the result should be ull value = 1
         }
     }
-
 	if (end){//check for case where pointer was set to NULL
         if(values_read){
 		    *end = (char *)ptr;
@@ -116,11 +113,12 @@ int main(){
 //Encode Precondition (Arrange):
     bool split_path = __VERIFIER_nondet_bool();
     unsigned int sizeStr = __VERIFIER_nondet_uint();
-    if(split_path){//split_path==true for cases without '-', where sizeStr can be >= 22 as the very low value range case isnt an issue
+    if(split_path){//split_path==true for cases without '-', where 
+    //sizeStr can be >= 22 as the very low value range case isnt an issue
         if(sizeStr >= 25|| sizeStr <= 0) {abort();}
     } else {
         if(sizeStr >= 21|| sizeStr <= 0) {abort();}//for cases allowing '-'
-        //go down from 25 to 21 to eliminate cases of -9.223.372.036.854.775.809 + /0 etc.
+    //go down from 25 to 21 to eliminate cases of -9223372036854775809 etc.
     }
     char *str = (char *)malloc(sizeof(char) * sizeStr);
     uint64_t strVal = __VERIFIER_nondet_ulonglong();
