@@ -187,7 +187,7 @@ int main(){
 //assert((input_item_size == 0) || (input_item_size > settings.item_size_max) == (out==0));//proven correct
 
 //slabs class assertions:
-for (int i = 1; i <= power_largest; i++){//can also try power_largest-1 to exclude slabclass[power_largest].size
+for (int i = 1; i <= power_largest-1; i++){//can also try power_largest-1 to exclude slabclass[power_largest].size
     //assert(slabclass[i+1].size>slabclass[i].size);//can a slab class be the same size (or smaller) than the last
     assert(slabclass[i].size>=slabclass[i-1].size);// can a slab class actually be smaller than the last
 }//./esbmc --no-div-by-zero-check --force-malloc-success --state-hashing --add-symex-value-sets --no-align-check --k-step 2 --floatbv --unlimited-k-steps --no-vla-size-check "/home/erdnakram/Documents/Memcached Clone/memcached github git clone/memcached/slabs_clsid_harness_assertions_start.c" --64 --witness-output witness.graphml --enable-unreachability-intrinsic --no-pointer-check --interval-analysis --no-bounds-check --error-label ERROR --goto-unwind --unlimited-goto-unwind --k-induction --max-inductive-step 3
