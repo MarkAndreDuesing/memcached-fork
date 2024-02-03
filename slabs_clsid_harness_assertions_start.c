@@ -145,37 +145,9 @@ int main(){
     if(settings.chunk_size == 0){abort();}
     //if(settings.chunk_size <= 0 || settings.chunk_size > 300){abort();} //added for experiments (remove later)
 
-//    bool slab_chunk_max_opt_used = __VERIFIER_nondet_bool();
-//    bool no_chunked_items_opt_used = __VERIFIER_nondet_bool();
-//    bool no_modern_opt_used = __VERIFIER_nondet_bool();
-//    bool slab_chunk_size_changed = false;
-
-//    settings.slab_chunk_size_max = settings.slab_page_size / 2;//default value, which can potentially be overwritten
-      //also removed, as this slab_page_size/2 value can also just occur through __VERIFIER_nondet_int();
-
 //potential case SLAB_CHUNK_MAX:
-//    if(slab_chunk_max_opt_used){
-        settings.slab_chunk_size_max = __VERIFIER_nondet_int();
+        settings.slab_chunk_size_max = __VERIFIER_nondet_int();//default is settings.slab_page_size/2
         //if(settings.slab_chunk_size_max < settings.chunk_size){abort();}//added for experiments (remove later)
-        //bool slab_chunk_size_changed = true;
-//    }
-
-//cases removed for redundancy:
-//potential case NO_CHUNKED_ITEMS:
-//    if (no_chunked_items_opt_used) {
-//        settings.slab_chunk_size_max = settings.slab_page_size;
-//    }
-//potential case NO_MODERN:
-//    if (no_modern_opt_used && !slab_chunk_size_changed) {
-//        settings.slab_chunk_size_max = settings.slab_page_size;
-//    }
-
-
-//safety checks:
-
-//    if (settings.item_size_max > 1024 * 1024 && !slab_chunk_size_changed) {
-//        settings.slab_chunk_size_max = settings.slab_page_size/2;
-//    }//case removed for redundancy
 
     if (settings.slab_chunk_size_max > settings.item_size_max ||
         settings.item_size_max % settings.slab_chunk_size_max != 0 ||//items divisible by max chunk size
@@ -205,33 +177,18 @@ int main(){
 //Encode Postcondition (Assert):
 
 //array bound assertions:
-assert(power_largest>=1&&power_largest<=MAX_NUMBER_OF_SLAB_CLASSES-1);
+//assert(power_largest>=1&&power_largest<=MAX_NUMBER_OF_SLAB_CLASSES-1);
 //if theres any way for power_largest to be =0 -> res would iterate repeatedly into an array bound error:
-assert(out>=0 && out<=power_largest);
+//assert(out>=0 && out<=power_largest);
 
-
-//assert(power_largest>=1&&power_largest<=MAX_NUMBER_OF_SLAB_CLASSES-2);
+//safety case assertions:
+//if (input_item_size > 0 && input_item_size <= settings.item_size_max){assert(res!=0);}
+//if (input_item_size <= 0 || input_item_size > settings.item_size_max){assert(res==0);}
+assert((input_item_size == 0) || (input_item_size > settings.item_size_max) == (out==0));
 
 
 /*
-assertions/investigations:
-
-start with: 
-
-[1.5h]
-power_largest and res array bound tests, which will most likely turn out safe
-z.B.
-    //array bound error cannot occur example assertion:
-    
-
-[1h]
-safety case assertions:
-z.B.
-    //if (size != 0 && size <= settings.item_size_max){assert(res!=0);}
-and
-1) 0 could be returned in unwanted circumstances, depending on factors such as changing \verb|item_size_max| ->
-Equivalence assertion (item size<=0 or greater than max item size <==> res = 0)
-See if couterexamples either direction
+assertions/investigations:   
 
 [6h]
 Then continuation on 48+(-10) error -> all slab sizes 0 -> perslab addition
