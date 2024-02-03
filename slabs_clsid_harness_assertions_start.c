@@ -204,22 +204,14 @@ int main(){
 
 //Encode Postcondition (Assert):
 
-    
+//array bound assertions:
+assert(power_largest>=1&&power_largest<=MAX_NUMBER_OF_SLAB_CLASSES-1);
+//if theres any way for power_largest to be =0 -> res would iterate repeatedly into an array bound error:
+assert(out>=0 && out<=power_largest);
 
-    
 
-    //maybe try to fit this assertion in somewhere after slab class increasing size assertion!:
-    //unsigned int item_size = sizeof(item);
-    //bool any_greater = false;
-    //for (int i = 0; i <= power_largest-1; i++){
-    //    if (slabclass[i].size>item_size) {
-    //        any_greater = true;
-    //    }
-    //}
-    //assert(any_greater);//should be unreachable, as some slab class from 0 to power_largest-1 should be able to hold the empty item
+//assert(power_largest>=1&&power_largest<=MAX_NUMBER_OF_SLAB_CLASSES-2);
 
-    return 1;
-}
 
 /*
 assertions/investigations:
@@ -230,10 +222,7 @@ start with:
 power_largest and res array bound tests, which will most likely turn out safe
 z.B.
     //array bound error cannot occur example assertion:
-    //assert(power_largest<=MAX_NUMBER_OF_SLAB_CLASSES-1);//proven correct!
-    //2) assert if theres any way for power_largest to be =0 -> res would iterate repeatedly into an array bound error:
-    //-> assert(1<=power_largest);
-    //assert(out>=0 && out<=power_largest);
+    
 
 [1h]
 safety case assertions:
@@ -298,3 +287,19 @@ another thing to look into: slab_chunk_size_max has to be smaller than item_size
 whereas size in _parse... and slabs_init is unsigned int. meaning you cheat this rule, alongwith many other errors
 (probably wont have time for this in detail, leave to the end!)
 */
+
+    
+
+
+    //maybe try to fit this assertion in somewhere after slab class increasing size assertion!:
+    //unsigned int item_size = sizeof(item);
+    //bool any_greater = false;
+    //for (int i = 0; i <= power_largest-1; i++){
+    //    if (slabclass[i].size>item_size) {
+    //        any_greater = true;
+    //    }
+    //}
+    //assert(any_greater);//should be unreachable, as some slab class from 0 to power_largest-1 should be able to hold the empty item
+
+    return 1;
+}
