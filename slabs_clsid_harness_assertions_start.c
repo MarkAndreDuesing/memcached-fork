@@ -190,6 +190,7 @@ int main(){
     }
     //maybe make a limitation that item_size_max<=slab_page_size if needed
     
+    bool use_slab_sizes = __VERIFIER_nondet_bool();
 
 //Main Verification Harness:
     if(use_slab_sizes){
