@@ -12,6 +12,7 @@
 #define CHUNK_ALIGN_BYTES 8
 /* slab class max is a 6-bit number, -1. */
 #define MAX_NUMBER_OF_SLAB_CLASSES (63 + 1)
+//#define MAX_NUMBER_OF_SLAB_CLASSES (3 + 1)
 
 //implicit declarations:
 extern unsigned int __VERIFIER_nondet_uint();
@@ -127,10 +128,10 @@ int main(){
     settings.slab_page_size = 1024 * 1024; /* chunks are split from 1MB pages. */
 
     int factor_convert = __VERIFIER_nondet_int();
-    if(factor_convert <= 100 || factor_convert > 1000000){abort();}
+    if(factor_convert <= 1000 || factor_convert > 1020){abort();}
     //-> between 1 and 10000 (could also use > 4294967200 at the most -> f=42949672 max)
     //int factor_convert = 125;
-    settings.factor = (double)factor_convert/100.0;//-> converted double with 2 values after decimal point
+    settings.factor = (double)factor_convert/1000.0;//-> converted double with 2 values after decimal point
 
     settings.item_size_max = __VERIFIER_nondet_int();/* default is 1024*1024 */
     if (settings.item_size_max < ITEM_SIZE_MAX_LOWER_LIMIT ||//            1024
@@ -142,8 +143,8 @@ int main(){
     }
 
     settings.chunk_size = __VERIFIER_nondet_int();/* default is 48 */
-    if(settings.chunk_size == 0){abort();}
-    //if(settings.chunk_size <= 0 || settings.chunk_size > 300){abort();} //added for experiments (remove later)
+    //if(settings.chunk_size == 0){abort();}
+    if(settings.chunk_size <= 0 || settings.chunk_size > 96){abort();} //added for experiments (remove later)
 
 //potential case SLAB_CHUNK_MAX:
         settings.slab_chunk_size_max = __VERIFIER_nondet_int();//default is settings.slab_page_size/2
@@ -187,43 +188,23 @@ int main(){
 //assert((input_item_size == 0) || (input_item_size > settings.item_size_max) == (out==0));//proven correct
 
 //slabs class assertions:
+//if(slabclass[1].size>0){
+//or just add chunk_size>0 restriction (and reference the github pull request)
 for (int i = 1; i <= power_largest-1; i++){//alternatively <= power_largest, to include last slabclass
-    assert(slabclass[i].size>slabclass[i-1].size);//alternatively >=
+    assert(slabclass[i].size>=slabclass[i-1].size+CHUNK_ALIGN_BYTES);//alternatively >=
 }
 //also assert that the slabs have to be greater than 0 after (and greater than sizeof(item)); and at least CHUNK_ALIGN_BYTES larger than the last
-
+//}
 
 /*
 assertions/investigations:   
 
-[6h]
-Then continuation on 48+(-10) error -> all slab sizes 0 -> perslab addition
-
-(counterexample to "each slab class bigger than the last")
-Make assertion class0 to n-2 same
-Then class0 to n-1 same 
-Then class0 to n-1 same and >0
-z.B.
-
-    //slabclass[i+1]>slabclass[i]
-    //make assert that every slab class bigger than the last, then invert to see if ESBMC can find example
-
-    //and that slabclass[power_largest] is biggest in array
-    
-    //for (int i = 0; i <= power_largest-2; i++){//can also try power_largest-1 to include slabclass[power_largest].size
-    //    assert(slabclass[i+1].size>slabclass[i].size);
-    //    assert(slabclass[i+1].size>=slabclass[i].size);
-    //}
 
 (find various ways this can be achieved including steering ESBMC towards the very small factor possibility -> "very small factor (1.001) unable to overcome n-byte alignment")
 -> results in something like "memcached -n 8 -f 1.01 -o slab_chunk_max=64 -vv" leads to !=0 slab classes all identical, while still actually being resonable! (steer in that direction)
 using stats slabs you can then see that only slab 1 and slab 63 are ever used, none of the others!
 -> leads to segmentation fault, but i only kinda understand why, probably wont have time to figure out
 
-[1.5h]
-Show memcached -... float point expection core dumped (based on a previous assertion counterexample) ->
-Perslab calulation division probably causes floating point exception
--> remove --no-division-by-zero -> add perslab to moddeling
 
 also remember slab_chunk_size_max=0 probably directly causes a core dump because of the safety check modulo% cases
 
